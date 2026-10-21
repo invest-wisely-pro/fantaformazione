@@ -1,0 +1,61 @@
+FANTAFORMAZIONE
+La formazione migliore per ogni giornata di fantacalcio, con i dati della Serie A
+aggiornati da soli ogni mattina, senza chiavi né registrazioni, disponibili anche senza rete.
+
+1. METTILA ONLINE (GitHub Pages, gratis)
+  - Crea un account su github.com e un nuovo repository pubblico, per esempio "fantaformazione".
+  - "Add file" → "Upload files": carica TUTTO il contenuto di questo pacchetto
+    (index.html, dati.json, sw.js, manifest.webmanifest, le cartelle icons, tools e .github).
+    Nota: la cartella .github è nascosta su Mac e Windows. Se non riesci a caricarla,
+    creala a mano: "Add file" → "Create new file", come nome scrivi
+    .github/workflows/aggiorna-dati.yml e incolla il contenuto del file.
+  - Settings → Pages → "Deploy from a branch" → branch "main", cartella "/ (root)" → Save.
+  - Dopo un minuto l'app è su https://TUONOME.github.io/fantaformazione/
+
+2. ATTIVA L'AGGIORNAMENTO AUTOMATICO (una volta sola, 2 minuti)
+  Le stesse istruzioni, con i link già pronti, sono nell'app: Lega → Dati automatici.
+  a) Settings → Actions → General → "Workflow permissions": "Read and write permissions" → Save.
+  b) Actions → "Aggiorna dati Serie A" → "Run workflow". La prima volta dura circa 3 minuti.
+  Da quel momento GitHub aggiorna dati.json ogni mattina alle 7 (le 6 con l'ora solare).
+
+3. INSTALLALA SUL TELEFONO
+  - iPhone (Safari): Condividi → "Aggiungi alla schermata Home" → lascia attivo "Apri come web app".
+  - Android (Chrome): menu ⋮ → "Installa app".
+  - Su iPhone l'app installata ha una memoria separata da Safari: se hai già inserito la rosa
+    nel browser, salva un backup (Lega → Backup) e ripristinalo dentro l'app.
+
+DA DOVE ARRIVANO I DATI
+  Da understat.com, che pubblica liberamente i dati della Serie A. Lo script li legge una volta
+  al giorno, con calma (una richiesta ogni 1,5 secondi), e ne ricava:
+  - classifica, gol ed expected goals fatti e subiti: decidono la difficoltà di ogni partita;
+  - calendario diviso in giornate e giornata in corso (anche con rinvii e recuperi);
+  - tutti i giocatori, con ruolo, squadra, presenze, minuti, gol, assist, cartellini;
+  - minuti e fantavoto stimato di ogni giocatore in ogni partita;
+  - squalifiche probabili: espulsi nell'ultima partita e chi ha raggiunto la 5ª, 10ª, 14ª,
+    17ª ammonizione (poi ogni ammonizione);
+  - titolari fissi rimasti fuori nell'ultima partita, segnalati come "in dubbio".
+
+I LIMITI, DETTI CHIARAMENTE
+  - Infortuni: nessuna fonte libera li pubblica in un formato leggibile. L'app segnala come
+    "in dubbio" i titolari fissi che non hanno giocato l'ultima partita: è un indizio, non una
+    certezza. Un infortunio di lunga durata di una riserva non viene visto.
+  - Squalifiche: sono calcolate dai cartellini. Il giudice sportivo può dare più giornate
+    a un espulso, o squalificare per altri motivi: in quei casi correggi tu lo stato.
+  - Ballottaggi e panchine: li segni tu in Rosa quando escono le probabili formazioni.
+    Lo stato che imposti vale per quella giornata; alla successiva riparte dai dati automatici.
+  - Voti: sono STIMATI da statistiche oggettive (risultato, gol subiti, expected goals e
+    assist, passaggi chiave) più i bonus e malus classici (gol +3, assist +1, ammonizione -0,5,
+    espulsione -1, autogol -2, gol subito -1 per i portieri). Servono a confrontare i giocatori,
+    non coincidono con i fantavoti ufficiali. Se vuoi quelli ufficiali:
+    - Lega → "Carica file Excel": il file delle statistiche scaricato a mano da Fantacalcio.it;
+    - Giornata → "Voti di una giornata giocata": scrivi i fantavoti della tua lega.
+    I dati che inserisci tu hanno sempre la precedenza su quelli stimati.
+  - Understat è un sito indipendente e potrebbe cambiare formato. In quel caso l'app tiene
+    gli ultimi dati scaricati e Lega → Dati automatici mostra il problema.
+
+SE QUALCOSA NON VA
+  - Lega → Dati automatici mostra la data dell'ultimo aggiornamento e gli eventuali problemi.
+  - Actions → l'ultima esecuzione → "Scarica i dati della Serie A" mostra cosa è successo.
+
+SUL PC (facoltativo, con Python 3.9 o successivo)
+  python tools/aggiorna_dati.py dati.json

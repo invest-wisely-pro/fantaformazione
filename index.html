@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fantaformazione</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2e7b47">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+:root{
+  --bg:#e6ece7;--surface:#f6f9f6;--surface2:#edf2ee;--ink:#13201a;--muted:#55665c;--line:#c8d4cb;
+  --pitch-a:#2e7b47;--pitch-b:#297141;--chalk:rgba(255,255,255,.5);
+  --P:#e0960f;--D:#1f8f55;--C:#2a74c4;--A:#cf3c36;
+  --ok:#1c9651;--warn:#d6970c;--bad:#cf3c36;
+  --btn:#13201a;--btn-ink:#f6f9f6;--chipbg:#ffffff;--chipink:#13201a;
+  color-scheme:light;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1510;--surface:#16201a;--surface2:#1c2821;--ink:#e4ede6;--muted:#93a499;--line:#2a3a30;
+  --pitch-a:#1f5a34;--pitch-b:#1b522f;--chalk:rgba(255,255,255,.35);
+  --P:#f0a92a;--D:#38b070;--C:#4b91de;--A:#e8574f;
+  --ok:#37b26b;--warn:#e7ab2a;--bad:#e8574f;
+  --btn:#e4ede6;--btn-ink:#0d1510;--chipbg:#f3f6f3;--chipink:#13201a;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0d1510;--surface:#16201a;--surface2:#1c2821;--ink:#e4ede6;--muted:#93a499;--line:#2a3a30;
+  --pitch-a:#1f5a34;--pitch-b:#1b522f;--chalk:rgba(255,255,255,.35);
+  --P:#f0a92a;--D:#38b070;--C:#4b91de;--A:#e8574f;
+  --ok:#37b26b;--warn:#e7ab2a;--bad:#e8574f;
+  --btn:#e4ede6;--btn-ink:#0d1510;--chipbg:#f3f6f3;--chipink:#13201a;
+  color-scheme:dark;}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 Barlow,"Segoe UI",system-ui,sans-serif;min-height:100%;padding-bottom:84px;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3,.cond{font-family:"Barlow Condensed","Arial Narrow",Barlow,sans-serif;letter-spacing:.01em}
+h2{font-size:1.5rem;font-weight:700;margin:0 0 .5rem}
+h3{font-size:1.15rem;font-weight:600;margin:1.25rem 0 .4rem}
+p{margin:.3rem 0 .8rem}
+a{color:inherit}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--C);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:10px;padding-bottom:8px}
+header.top h1{font-size:1.35rem;margin:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header.top .g{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--muted);white-space:nowrap}
+main{padding:16px 0 24px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 10px;text-decoration:none;color:var(--muted);font-size:.8rem;font-weight:600}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a[aria-current="page"]{color:var(--ink)}
+nav.tabs a[aria-current="page"] svg{stroke:var(--ink)}
+
+/* Scoreboard + pitch */
+.board{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
+.board .mod{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:4.2rem;line-height:.85;letter-spacing:-.01em}
+.board .meta{text-align:right;color:var(--muted);font-size:.92rem;line-height:1.3}
+.board .meta b{display:block;color:var(--ink);font-family:"Barlow Condensed",sans-serif;font-size:1.6rem;line-height:1}
+.pitch{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:68/88;max-height:72vh;margin:0 auto;
+  background:repeating-linear-gradient(180deg,var(--pitch-a) 0 9.09%,var(--pitch-b) 9.09% 18.18%)}
+.pitch svg.lines{position:absolute;inset:0;width:100%;height:100%}
+.rows{position:absolute;inset:3% 2% 2%;display:flex;flex-direction:column;justify-content:space-around}
+.row{display:flex;justify-content:space-evenly;align-items:flex-start}
+.chip{background:none;border:0;padding:2px;display:flex;flex-direction:column;align-items:center;width:19%;min-width:0;cursor:pointer;color:#fff}
+.disc{position:relative;width:46px;height:46px;border-radius:50%;background:var(--chipbg);color:var(--chipink);display:grid;place-items:center;border:4px solid var(--role);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.disc b{font-family:"Barlow Condensed",sans-serif;font-size:1.25rem;font-weight:700}
+.dot{position:absolute;right:-5px;top:-5px;width:15px;height:15px;border-radius:50%;border:2px solid #fff}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.chip .nm{margin-top:4px;font-weight:600;font-size:.82rem;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.chip .vs{font-size:.72rem;opacity:.9;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.r-P{--role:var(--P)}.r-D{--role:var(--D)}.r-C{--role:var(--C)}.r-A{--role:var(--A)}
+.chip.lock .disc::after{content:"";position:absolute;left:-6px;bottom:-4px;width:13px;height:13px;border-radius:3px;background:var(--ink);border:2px solid #fff}
+
+.mods{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+.mods button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 12px;text-align:left;cursor:pointer}
+.mods button .m{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.25rem;line-height:1.1}
+.mods button .s{font-size:.8rem;color:var(--muted)}
+.mods button[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.mods button[aria-pressed="true"] .s{color:inherit;opacity:.75}
+.mods button:disabled{opacity:.45;cursor:default}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.btn{border:0;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--btn);color:var(--btn-ink)}
+.btn.sec{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:none;color:var(--bad);border:1px solid var(--bad)}
+.btn.small{padding:7px 12px;font-size:.92rem}
+.btn.grow{flex:1}
+
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.list .n{width:1.6em;text-align:right;color:var(--muted);font-family:"Barlow Condensed",sans-serif;font-size:1.05rem}
+.tag{flex:0 0 auto;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.85rem;background:var(--role)}
+.who{flex:1;min-width:0;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+.who .a{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .b{display:block;color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idx{flex:0 0 auto;min-width:38px;text-align:center;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.2rem;border-radius:8px;padding:1px 6px;border:2px solid var(--line)}
+.idx.ok{border-color:var(--ok)}.idx.warn{border-color:var(--warn)}.idx.bad{border-color:var(--bad)}.idx.off{color:var(--muted)}
+select.st{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 6px;font-size:.88rem;max-width:122px}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.auto{font-size:.72rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-left:4px;vertical-align:1px}
+details.guide{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);margin:10px 0}
+details.guide summary{cursor:pointer;font-weight:600}
+details.guide ol{padding-left:1.3em;margin:.6rem 0}
+details.guide li{margin:.45rem 0}
+.fresh{font-size:.85rem;color:var(--muted);margin:10px 0 0}
+.note{background:var(--surface2);border-left:4px solid var(--warn);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:.94rem}
+.empty{text-align:center;padding:32px 8px}
+.empty .big{font-family:"Barlow Condensed",sans-serif;font-size:2.2rem;font-weight:700;line-height:1.05;margin-bottom:8px}
+
+.field{display:block;margin:10px 0}
+.field > span{display:block;font-size:.88rem;color:var(--muted);margin-bottom:3px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 10px}
+.field textarea{min-height:150px;font-size:.95rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 10px;cursor:pointer;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink)}
+.fx{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.fx .t{flex:1;font-weight:600;min-width:0}
+.fx select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px;max-width:42%}
+.stepper{display:inline-flex;align-items:center;gap:6px}
+.stepper button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:1.3rem;cursor:pointer}
+.stepper output{font-family:"Barlow Condensed",sans-serif;font-size:2rem;font-weight:700;min-width:2.2ch;text-align:center}
+.votes input{width:64px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px;text-align:center}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:6px 10px;background:var(--surface);font-family:"Barlow Condensed",sans-serif;font-size:1.1rem;font-weight:600}
+.range{display:grid;grid-template-columns:8.5em 1fr 3em;align-items:center;gap:10px;margin:6px 0}
+.range output{text-align:right;font-weight:600}
+.tablewrap{overflow-x:auto}
+table.teams{border-collapse:collapse;width:100%;font-size:.94rem}
+table.teams th,table.teams td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+table.teams th{font-weight:600;color:var(--muted)}
+table.teams input{width:56px;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px;text-align:center}
+
+dialog{border:0;border-radius:16px;padding:0;width:min(560px,94vw);max-height:88vh;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(5,12,8,.55)}
+.dlg{padding:18px 18px 16px;overflow-y:auto;max-height:88vh}
+.dlg .head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.dlg .head h2{margin:0;flex:1;min-width:0}
+.x{border:0;background:none;font-size:1.6rem;line-height:1;cursor:pointer;color:var(--muted);padding:4px 8px}
+.bar{margin:12px 0}
+.bar .l{display:flex;justify-content:space-between;font-weight:600}
+.bar .track{height:8px;border-radius:4px;background:var(--surface2);margin:4px 0 3px;overflow:hidden}
+.bar .fill{height:100%;background:var(--ink);border-radius:4px}
+.bar .d{font-size:.86rem;color:var(--muted)}
+.bigidx{font-family:"Barlow Condensed",sans-serif;font-size:3rem;font-weight:700;line-height:1}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media (min-width:640px){.board .mod{font-size:5rem}.disc{width:54px;height:54px}.chip .nm{font-size:.9rem}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><h1 id="tName">Fantaformazione</h1><span class="g" id="tG"></span></div></header>
+<main><div class="wrap" id="view"></div></main>
+<nav class="tabs" aria-label="Sezioni"><div class="wrap">
+  <a href="#formazione" data-tab="formazione"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M4 12h16"/><circle cx="12" cy="12" r="2.6"/></svg>Formazione</a>
+  <a href="#rosa" data-tab="rosa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5.4 6-5.4s5.4 2 6 5.4"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4M18 14.8c1.7.7 2.7 2.4 3 5.2"/></svg>Rosa</a>
+  <a href="#giornata" data-tab="giornata"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Giornata</a>
+  <a href="#lega" data-tab="lega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="var(--surface)"/><circle cx="15" cy="12" r="1.8" fill="var(--surface)"/><circle cx="8" cy="17" r="1.8" fill="var(--surface)"/></svg>Lega</a>
+</div></nav>
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileX" accept=".xlsx,.xls,.csv" hidden>
+<input type="file" id="fileB" accept=".json,application/json" hidden>
+
+<script>
+/* ---------- Costanti ---------- */
+const MODULI_ALL=['3-4-3','3-5-2','4-3-3','4-4-2','4-5-1','5-3-2','5-4-1'];
+const RUOLI={P:'Portiere',D:'Difensore',C:'Centrocampista',A:'Attaccante'};
+const ORD=['P','D','C','A'];
+const STATI={tit:{l:'Titolare',s:100},bal:{l:'Ballottaggio',s:60},dub:{l:'In dubbio',s:35},pan:{l:'Panchina',s:15},inf:{l:'Infortunato',s:0,out:true},squ:{l:'Squalificato',s:0,out:true}};
+const TEAMS0=[['Inter',21,9],['Lazio',14,4],['Roma',16,3],['Milan',14,7],['Como',12,7],['Frosinone',13,9],['Cagliari',6,7],['Juventus',9,8],['Napoli',10,7],['Torino',10,9],['Atalanta',10,11],['Lecce',9,12],['Sassuolo',12,14],['Monza',13,15],['Bologna',6,10],['Udinese',9,16],['Genoa',5,13],['Fiorentina',8,17],['Parma',4,13],['Venezia',6,16]];
+const CAL={
+ 8:[['Torino','Monza'],['Cagliari','Bologna'],['Como','Sassuolo'],['Napoli','Roma'],['Lazio','Parma'],['Inter','Fiorentina'],['Genoa','Venezia'],['Atalanta','Frosinone'],['Lecce','Juventus'],['Udinese','Milan']],
+ 9:[['Sassuolo','Lazio'],['Roma','Cagliari'],['Torino','Como'],['Parma','Udinese'],['Milan','Bologna'],['Venezia','Inter'],['Monza','Napoli'],['Genoa','Juventus'],['Frosinone','Lecce'],['Fiorentina','Atalanta']]
+};
+
+/* ---------- Utilità ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const uid=()=>Math.random().toString(36).slice(2,10);
+const num=v=>{if(v===''||v==null)return null;const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n};
+const abbr=t=>({Inter:'INT',Juventus:'JUV',Genoa:'GEN',Fiorentina:'FIO',Frosinone:'FRO',Monza:'MON',Milan:'MIL'}[t]||String(t||'').slice(0,3).toUpperCase());
+const f2=n=>n==null?'–':n.toFixed(2).replace('.',',');
+const f1=n=>n==null?'–':n.toFixed(1).replace('.',',');
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2600)}
+
+/* ---------- Archivio locale (IndexedDB) ---------- */
+const DB={db:null,
+ open(){return new Promise(res=>{try{const r=indexedDB.open('fantaformazione',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
+ get(k){return new Promise(res=>{if(!this.db)return res(null);try{const q=this.db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result??null);q.onerror=()=>res(null)}catch(e){res(null)}})},
+ set(k,v){return new Promise(res=>{if(!this.db)return res(false);try{const tx=this.db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res(true);tx.onerror=()=>res(false)}catch(e){res(false)}})}
+};
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{DB.set('state',JSON.parse(JSON.stringify(S)))},250)}
+
+function fixturesFromCal(g){const m={};(CAL[g]||[]).forEach(([h,a])=>{m[h]={opp:a,casa:true};m[a]={opp:h,casa:false}});return m}
+function defState(){return{v:1,
+ settings:{nome:'La mia squadra',giornata:8,giornataAuto:true,moduli:[...MODULI_ALL],panchina:7,pesi:{d:40,r:35,m:25}},
+ teams:TEAMS0.map(([n,gf,gs])=>({n,g:7,gf,gs})),teamsAgg:'19 ottobre 2026, dopo 7 giornate',
+ players:[],fixtures:{},listone:[],listoneInfo:null,demo:false}}
+let S=defState();
+const ui={modulo:null};
+
+/* ---------- Dati automatici (dati.json, aggiornato da GitHub) ---------- */
+let DATI=null,GI=new Map();const FXC={};
+function fmtData(iso){try{const d=new Date(iso);return d.toLocaleDateString('it-IT',{day:'numeric',month:'long'})+' alle '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}catch(e){return iso}}
+async function loadDati(rete=true){
+ if(!DATI){const c=await DB.get('dati');if(c&&c.squadre)DATI=c}
+ let nuovo=false;
+ if(rete&&location.protocol.startsWith('http')){try{const r=await fetch('dati.json',{cache:'no-cache'});if(r.ok){const d=await r.json();if(d&&Array.isArray(d.squadre)&&d.squadre.length){nuovo=!DATI||d.aggiornato!==DATI.aggiornato;DATI=d;DB.set('dati',d)}}}catch(e){}}
+ applyDati();return nuovo;
+}
+function applyDati(){
+ if(!DATI)return;GI=new Map((DATI.giocatori||[]).map(g=>[g.id,g]));Object.keys(FXC).forEach(k=>delete FXC[k]);
+ if(DATI.squadre&&DATI.squadre.length){S.teams=DATI.squadre.map(t=>({n:t.n,g:t.g,gf:t.gf,gs:t.gs,xgf:t.xgf,xgs:t.xgs,pos:t.pos,pt:t.pt}));S.teamsAgg=DATI.aggiornato?'aggiornati in automatico il '+fmtData(DATI.aggiornato):'dati iniziali'}
+ if(S.settings.giornataAuto!==false&&DATI.giornataCorrente)S.settings.giornata=DATI.giornataCorrente;
+ autoLink();save();
+}
+function apiOf(p){return p.apiId!=null?GI.get(p.apiId):null}
+function autoLink(){
+ if(!GI.size)return;
+ for(const p of S.players){if(p.apiId!=null&&GI.has(p.apiId))continue;const g=trovaApi(p.nome,p.squadra,p.ruolo);p.apiId=g?g.id:null}
+}
+function trovaApi(nome,squadra,ruolo){
+ const n=norm(nome);if(!n)return null;const toks=n.split(' ');const last=toks[toks.length-1];
+ const pool=[...GI.values()].filter(g=>!squadra||norm(g.s)===norm(squadra));
+ const sc=g=>{const a=norm(g.n),c=norm(g.c);if(a===n||c===n)return 3;const ct=c.split(' ').concat(a.split(' '));if(toks.every(t=>ct.includes(t)))return 2;if(ct.includes(last)&&last.length>2)return 1;return 0};
+ let best=[];let bs=0;for(const g of pool){const v=sc(g);if(v>bs){bs=v;best=[g]}else if(v===bs&&v>0)best.push(g)}
+ if(best.length>1&&ruolo)best=best.filter(g=>g.r===ruolo);
+ return bs>0&&best.length===1?best[0]:null;
+}
+function fxFromDati(g){if(FXC[g])return FXC[g];const m={};const L=DATI&&DATI.calendario&&DATI.calendario[g];if(!L)return null;L.forEach(([h,a])=>{m[h]={opp:a,casa:true};m[a]={opp:h,casa:false}});return FXC[g]=m}
+function fxBase(g){return fxFromDati(g)||fixturesFromCal(g)}
+function statoEff(p,g){
+ if(p.statoG===g)return{s:p.stato,auto:false};
+ const ind=p.apiId!=null&&DATI&&DATI.indisponibili&&DATI.indisponibili[p.apiId];
+ if(ind&&g===DATI.giornataCorrente)return{s:ind.t,auto:true,m:ind.m};
+ if(p.apiId!=null&&DATI)return{s:'tit',auto:true};
+ return{s:p.stato||'tit',auto:false};
+}
+function histOf(p){
+ const m=new Map();
+ if(p.apiId!=null&&DATI&&DATI.voti){for(const [g,vs] of Object.entries(DATI.voti)){const v=vs[p.apiId];if(v)m.set(+g,{g:+g,fv:v[0],min:v[1],casa:v[2]==null?null:!!v[2],auto:true})}}
+ (p.hist||[]).forEach(h=>m.set(h.g,h));return[...m.values()];
+}
+
+/* ---------- Rosa di esempio (nomi inventati) ---------- */
+function demoPlayers(){
+ const spec=[['Bianchi','P','Roma','tit',6.4],['Ferri','P','Lecce','pan',5.6],['Gallo','P','Parma','tit',5.3],
+ ['Rinaldi','D','Inter','tit',6.6],['Costa','D','Lazio','tit',6.4],['Marino','D','Milan','bal',6.3],['Greco','D','Como','tit',6.1],['Conti','D','Torino','tit',5.9],['Fontana','D','Genoa','dub',5.6],['Moretti','D','Napoli','tit',6.0],['Barbieri','D','Udinese','inf',5.7],
+ ['Romano','C','Inter','tit',7.1],['Colombo','C','Atalanta','tit',6.5],['Ricci','C','Juventus','bal',6.2],['Bruno','C','Roma','tit',6.6],['Esposito','C','Frosinone','tit',6.4],['Lombardi','C','Sassuolo','tit',6.1],['Leone','C','Bologna','pan',5.8],['Serra','C','Cagliari','squ',6.0],
+ ['De Luca','A','Milan','tit',7.4],['Mancini','A','Monza','tit',7.0],['Galli','A','Napoli','bal',6.6],['Testa','A','Fiorentina','tit',6.3],['Vitale','A','Lazio','tit',6.8],['Longo','A','Venezia','dub',5.9]];
+ let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+ return spec.map(([nome,ruolo,squadra,stato,fm])=>{
+  const hist=[5,6,7].map(g=>{const min=stato==='pan'?(rnd()<.5?0:20):stato==='bal'?(rnd()<.5?90:60):stato==='dub'?(rnd()<.4?0:70):90;
+   const fv=min===0?null:Math.round((fm+(rnd()-.45)*2)*2)/2;return{g,fv,min,casa:rnd()<.5}});
+  return{id:uid(),nome,ruolo,squadra,stato,fm,pv:7,mv:null,forza:null,hist}});
+}
+
+/* ---------- Algoritmo ---------- */
+function teamStats(n){const t=S.teams.find(x=>norm(x.n)===norm(n));if(!t||!t.g)return null;const xg=t.xgf!=null&&t.xgs!=null;return{gf:t.gf/t.g,gs:t.gs/t.g,af:(xg?(t.gf+t.xgf)/2:t.gf)/t.g,as:(xg?(t.gs+t.xgs)/2:t.gs)/t.g,xg}}
+function leagueAvg(){let g=0,gf=0;S.teams.forEach(t=>{g+=+t.g||0;gf+=t.xgf!=null?(+t.gf+ +t.xgf)/2:+t.gf||0});return g?gf/g:1.3}
+function fixtureOf(p,g){const o=(S.fixtures[g]||{})[p.squadra];if(o&&o.opp)return o;return (fxBase(g)||{})[p.squadra]||null}
+
+function disponibilita(p,g){
+ const se=statoEff(p,g);const st=STATI[se.s]||STATI.tit;
+ const last=histOf(p).filter(h=>h.min!=null).sort((a,b)=>b.g-a.g).slice(0,3);
+ const am=last.length?avg(last.map(h=>Math.min(90,h.min))):null;
+ const v=am==null?st.s:0.75*st.s+0.25*(am/90*100);
+ const d=st.l+(se.auto&&se.m?` (${se.m})`:se.auto&&se.s!=='tit'?' (automatico)':'')+(am==null?', minuti non registrati':`, ${Math.round(am)}′ di media nelle ultime ${last.length}`);
+ return{v:clamp(v),d,se};
+}
+function rendimento(p,fx){
+ const voti=histOf(p).filter(h=>h.fv!=null).sort((a,b)=>b.g-a.g);
+ const api=apiOf(p);const stimata=p.fm==null&&api&&api.fm!=null;
+ const season=p.fm!=null?p.fm:stimata?api.fm:(voti.length?avg(voti.map(h=>h.fv)):null);
+ const trend=voti.length>=2?avg(voti.slice(0,5).map(h=>h.fv)):null;
+ let venue=null;
+ if(fx){const vv=voti.filter(h=>h.casa===fx.casa);if(vv.length>=2)venue=avg(vv.map(h=>h.fv))}
+ const parts=[[season,.5],[trend,.3],[venue,.2]].filter(x=>x[0]!=null);
+ if(!parts.length)return{v:30,d:'Nessun voto: inserisci la fantamedia o i voti delle giornate',season,trend,hot:0};
+ const w=parts.reduce((s,x)=>s+x[1],0);const base=parts.reduce((s,x)=>s+x[0]*x[1],0)/w;
+ const hot=season!=null&&trend!=null?(trend-season>=.5?1:season-trend>=.5?-1:0):0;
+ let d=`Fantamedia ${f2(season)}${stimata?' (stimata)':''}`;if(trend!=null)d+=`, ultime ${Math.min(5,voti.length)}: ${f2(trend)}`;if(venue!=null)d+=`, ${fx.casa?'in casa':'in trasferta'}: ${f2(venue)}`;
+ return{v:clamp((base-5)/4*100),d,season,trend,hot,base};
+}
+function partita(p,fx){
+ if(!fx||!fx.opp)return{v:50,d:'Avversario non impostato (sezione Giornata)'};
+ const o=teamStats(fx.opp);if(!o)return{v:50,d:`Contro ${fx.opp}: statistiche squadra mancanti`};
+ const a=leagueAvg();const atk=o.af/a,def=o.as/a;let v;
+ if(p.ruolo==='P'||p.ruolo==='D')v=50-(atk-1)*45;
+ else if(p.ruolo==='C')v=50+((def-1)-(atk-1))*25;
+ else v=50+(def-1)*45;
+ v+=fx.casa?7:-7;
+ return{v:clamp(v),d:`${fx.casa?'In casa':'In trasferta'} contro ${fx.opp}: segna ${f1(o.gf)} e subisce ${f1(o.gs)} gol a partita${o.xg?`, con expected goals ${f1(o.af*2-o.gf)} e ${f1(o.as*2-o.gs)}`:''}`};
+}
+function score(p,g){
+ const fx=fixtureOf(p,g);const w=S.settings.pesi;const tot=(w.d+w.r+w.m)||1;
+ const D=disponibilita(p,g),R=rendimento(p,fx),M=partita(p,fx);const se=D.se;
+ const idx=Math.round((w.d*D.v+w.r*R.v+w.m*M.v)/tot);
+ const out=(STATI[se.s]||{}).out||p.forza==='out';
+ let lvl=idx>=62?'ok':idx>=48?'warn':'bad';
+ if(se.s==='bal'&&lvl==='ok')lvl='warn';
+ if(se.s==='dub'||se.s==='pan')lvl='bad';
+ return{p,D,R,M,idx,out,lvl,fx,st:se.s,auto:se.auto};
+}
+function calcola(){
+ const g=S.settings.giornata;const sc=S.players.map(p=>score(p,g));
+ const pool={P:[],D:[],C:[],A:[]};
+ sc.filter(s=>!s.out).forEach(s=>pool[s.p.ruolo]&&pool[s.p.ruolo].push(s));
+ const key=s=>s.idx+(s.p.forza==='in'?1000:0);
+ ORD.forEach(r=>pool[r].sort((a,b)=>key(b)-key(a)));
+ const mods=(S.settings.moduli.length?S.settings.moduli:MODULI_ALL);
+ const ranking=mods.map(m=>{const [d,c,a]=m.split('-').map(Number);const need={P:1,D:d,C:c,A:a};
+  const xi={};let sum=0,missing=[];
+  ORD.forEach(r=>{xi[r]=pool[r].slice(0,need[r]);sum+=xi[r].reduce((s,x)=>s+x.idx,0);if(xi[r].length<need[r])missing.push(`${need[r]-xi[r].length} ${r}`)});
+  const forced=ORD.reduce((n,r)=>n+pool[r].filter(s=>s.p.forza==='in').length-xi[r].filter(s=>s.p.forza==='in').length,0);
+  return{modulo:m,xi,sum,ok:!missing.length,missing,forcedOut:forced}});
+ const valid=ranking.filter(r=>r.ok);
+ const pref=valid.filter(r=>!r.forcedOut);
+ const best=(pref.length?pref:valid).slice().sort((a,b)=>b.sum-a.sum)[0]||null;
+ ranking.sort((a,b)=>(b.ok-a.ok)||(b.sum-a.sum));
+ return{sc,pool,ranking,best};
+}
+function panchina(res,form){
+ const used=new Set(ORD.flatMap(r=>form.xi[r].map(s=>s.p.id)));
+ const left={};ORD.forEach(r=>left[r]=res.pool[r].filter(s=>!used.has(s.p.id)));
+ const n=S.settings.panchina;const out=[];
+ if(left.P.length&&out.length<n)out.push(left.P.shift());
+ let any=true;while(out.length<n&&any){any=false;for(const r of ['D','C','A']){if(out.length>=n)break;if(left[r].length){out.push(left[r].shift());any=true}}}
+ if(out.length<n&&left.P.length)out.push(...left.P.splice(0,n-out.length));
+ return out.sort((a,b)=>ORD.indexOf(a.p.ruolo)-ORD.indexOf(b.p.ruolo));
+}
+
+/* ---------- Viste ---------- */
+let TAB='formazione';
+function render(){
+ $('#tName').textContent=S.settings.nome||'Fantaformazione';
+ $('#tG').textContent=`Giornata ${S.settings.giornata}`;
+ document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.tab===TAB)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+ const v=$('#view');
+ v.innerHTML=TAB==='rosa'?vRosa():TAB==='giornata'?vGiornata():TAB==='lega'?vLega():vFormazione();
+}
+function emptyRosa(){return`<div class="empty"><div class="big">Prima serve la tua rosa</div>
+ <p class="muted">Aggiungi i giocatori uno alla volta, incolla la lista dalla chat della lega o prova l’app con una rosa di esempio.</p>
+ <div class="actions" style="justify-content:center"><button class="btn" data-act="bulk">Incolla la rosa</button><button class="btn sec" data-act="add">Aggiungi un giocatore</button><button class="btn sec" data-act="demo">Usa la rosa di esempio</button></div></div>`}
+function pitchSVG(){return`<svg class="lines" viewBox="0 0 68 88" preserveAspectRatio="none" aria-hidden="true" fill="none" stroke="var(--chalk)" stroke-width=".45">
+ <rect x="2" y="2" width="64" height="84"/><path d="M2 44h64"/><circle cx="34" cy="44" r="7.5"/>
+ <rect x="16" y="2" width="36" height="13"/><rect x="25" y="2" width="18" height="5"/><rect x="16" y="73" width="36" height="13"/><rect x="25" y="81" width="18" height="5"/></svg>`}
+function chip(s){const p=s.p;const fx=s.fx;
+ const vs=fx&&fx.opp?(fx.casa?'vs ':'@')+abbr(fx.opp):abbr(p.squadra);
+ return`<button class="chip r-${p.ruolo}${p.forza==='in'?' lock':''}" data-act="info" data-id="${p.id}" aria-label="${esc(p.nome)}, indice ${s.idx}">
+ <span class="disc"><b>${s.idx}</b><i class="dot ${s.lvl}"></i></span><span class="nm">${esc(p.nome)}</span><span class="vs">${esc(vs)}</span></button>`}
+function row(s,n){const p=s.p;return`<li class="r-${p.ruolo}">${n!=null?`<span class="n">${n}</span>`:''}<span class="tag">${p.ruolo}</span>
+ <button class="who" data-act="info" data-id="${p.id}"><span class="a">${esc(p.nome)}${s.R.hot===1?' 🔥':''}</span><span class="b">${esc(p.squadra)}${s.fx&&s.fx.opp?` ${s.fx.casa?'vs':'@'} ${esc(s.fx.opp)}`:''}, ${STATI[s.st].l.toLowerCase()}</span></button>
+ <span class="idx ${s.out?'off':s.lvl}">${s.out?'–':s.idx}</span></li>`}
+
+function vFormazione(){
+ if(!S.players.length)return emptyRosa();
+ const res=calcola();
+ const chosen=(ui.modulo&&res.ranking.find(r=>r.modulo===ui.modulo&&r.ok))||res.best;
+ if(!chosen){const r0=res.ranking[0];return`<div class="empty"><div class="big">Rosa incompleta per i moduli scelti</div><p class="muted">Per il modulo ${esc(r0.modulo)} mancano ${esc(r0.missing.join(', '))} disponibili. Aggiungi giocatori o controlla gli indisponibili.</p><div class="actions" style="justify-content:center"><a class="btn" href="#rosa">Vai alla rosa</a></div></div>`}
+ const bench=panchina(res,chosen);
+ const xiAll=ORD.flatMap(r=>chosen.xi[r]);
+ const avgIdx=Math.round(chosen.sum/11);
+ const risk=xiAll.filter(s=>s.lvl==='bad').length;
+ const noFx=xiAll.filter(s=>!s.fx||!s.fx.opp).length;
+ const off=res.sc.filter(s=>s.out);
+ const rowsHTML=['A','C','D','P'].map(r=>`<div class="row">${chosen.xi[r].map(chip).join('')}</div>`).join('');
+ const isBest=chosen===res.best;
+ return`${S.demo?`<div class="note">Stai usando la rosa di esempio, con nomi e voti inventati. Quando hai inserito la tua, cancellala da Lega.</div>`:''}
+ <div class="board"><div><div class="muted small">${isBest?'Modulo consigliato':'Modulo scelto da te'}</div><div class="mod">${chosen.modulo}</div></div>
+ <div class="meta"><b>${avgIdx}</b>indice medio<br>${risk?`${risk} a rischio`:'nessuno a rischio'}</div></div>
+ <div class="pitch">${pitchSVG()}<div class="rows">${rowsHTML}</div></div>
+ <div class="mods" role="group" aria-label="Moduli">${res.ranking.map(r=>`<button data-act="mod" data-m="${r.modulo}" aria-pressed="${r===chosen}" ${r.ok?'':'disabled'}><span class="m">${r.modulo}</span><span class="s">${r.ok?(r===res.best?'migliore, ':'')+r.sum+' punti':'mancano '+esc(r.missing.join(', '))}</span></button>`).join('')}</div>
+ ${noFx?`<p class="small muted">${noFx} titolari senza avversario impostato: la difficoltà della partita per loro vale neutra. Impostala in Giornata.</p>`:''}
+ <div class="actions"><button class="btn grow" data-act="copy">Copia formazione</button>${navigator.share?'<button class="btn sec" data-act="share">Condividi</button>':''}</div>
+ <h3>Panchina, in ordine di entrata</h3>
+ <ul class="list">${bench.map((s,i)=>row(s,i+1)).join('')||'<li class="muted">Nessun giocatore disponibile per la panchina.</li>'}</ul>
+ ${off.length?`<h3>Non disponibili</h3><ul class="list">${off.map(s=>row(s)).join('')}</ul>`:''}
+ ${DATI&&DATI.aggiornato?`<p class="fresh">Dati di Serie A aggiornati il ${fmtData(DATI.aggiornato)}.</p>`:''}
+ <p class="small muted" style="margin-top:14px">Verde: consigliato. Giallo: ballottaggio o rendimento nella media. Rosso: rischioso. Tocca un giocatore per vedere come è calcolato il suo indice.</p>`;
+}
+function formazioneTesto(){
+ const res=calcola();const chosen=(ui.modulo&&res.ranking.find(r=>r.modulo===ui.modulo&&r.ok))||res.best;if(!chosen)return'';
+ const bench=panchina(res,chosen);const nm=a=>a.map(s=>s.p.nome).join(', ');
+ return`${S.settings.nome}, giornata ${S.settings.giornata} (${chosen.modulo})\nP: ${nm(chosen.xi.P)}\nD: ${nm(chosen.xi.D)}\nC: ${nm(chosen.xi.C)}\nA: ${nm(chosen.xi.A)}\nPanchina: ${nm(bench)}`;
+}
+
+function vRosa(){
+ if(!S.players.length)return emptyRosa();
+ const g=S.settings.giornata;const sc=S.players.map(p=>score(p,g));
+ const cnt=ORD.map(r=>`${sc.filter(s=>s.p.ruolo===r).length} ${r}`).join(', ');
+ return`<h2>Rosa</h2><p class="muted">${S.players.length} giocatori: ${cnt}. ${DATI&&GI.size?'Infortunati e squalificati arrivano in automatico; ballottaggi e panchine li segni tu quando escono le probabili formazioni.':'Aggiorna lo stato di ognuno quando escono le probabili formazioni.'}</p>
+ <div class="actions"><button class="btn" data-act="add">Aggiungi giocatore</button><button class="btn sec" data-act="bulk">Incolla lista</button></div>
+ ${ORD.map(r=>{const L=sc.filter(s=>s.p.ruolo===r).sort((a,b)=>b.idx-a.idx);if(!L.length)return'';
+ return`<h3>${RUOLI[r]==='Portiere'?'Portieri':RUOLI[r].slice(0,-1)+'i'}</h3><ul class="list">${L.map(s=>{const p=s.p;return`<li class="r-${r}"><span class="tag">${r}</span>
+ <button class="who" data-act="info" data-id="${p.id}"><span class="a">${esc(p.nome)}${s.R.hot===1?' 🔥':''}${p.forza==='in'?' (sempre titolare)':p.forza==='out'?' (escluso)':''}</span><span class="b">${esc(p.squadra)}, FM ${f2(s.R.season)}${apiOf(p)||!DATI||!GI.size?'':', non collegato'}</span></button>
+ ${s.auto&&s.st!=='tit'?'<span class="auto" title="Dai dati automatici">auto</span>':''}<select class="st" data-ch="stato" data-id="${p.id}" aria-label="Stato di ${esc(p.nome)}">${Object.entries(STATI).map(([k,o])=>`<option value="${k}" ${s.st===k?'selected':''}>${o.l}</option>`).join('')}</select>
+ <span class="idx ${s.out?'off':s.lvl}">${s.out?'–':s.idx}</span></li>`}).join('')}</ul>`}).join('')}`;
+}
+
+function vGiornata(){
+ const g=S.settings.giornata;const fx=Object.assign({},fxBase(g)||{},S.fixtures[g]||{});
+ const myTeams=[...new Set(S.players.map(p=>p.squadra).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it'));
+ const teams=S.teams.map(t=>t.n);
+ const vg=ui.votiG??Math.max(1,g-1);
+ const vf=Object.assign({},fxBase(vg)||{},S.fixtures[vg]||{});
+ return`<h2>Giornata</h2>
+ <div class="stepper"><button data-act="gm" aria-label="Giornata precedente">−</button><output>${g}</output><button data-act="gp" aria-label="Giornata successiva">+</button></div>
+ <p class="muted small">È la giornata per cui calcolare la formazione. ${fxFromDati(g)||CAL[g]?'Le partite sono già caricate dal calendario: cambiale solo se c’è un rinvio.':'Imposta l’avversario di ogni squadra che hai in rosa.'}</p>
+ ${DATI&&DATI.giornataCorrente?(S.settings.giornataAuto===false?`<p class="small">La giornata la scegli tu. <button class="btn sec small" data-act="gauto">Segui la giornata in corso (${DATI.giornataCorrente})</button></p>`:'<p class="small muted">Segue la giornata in corso in automatico.</p>'):''}
+ <h3>Partite delle tue squadre</h3>
+ ${myTeams.length?myTeams.map(t=>{const f=fx[t]||{};return`<div class="fx"><span class="t">${esc(t)}</span>
+ <select data-ch="opp" data-t="${esc(t)}" aria-label="Avversario di ${esc(t)}"><option value="">Avversario…</option>${teams.filter(x=>x!==t).map(x=>`<option ${f.opp===x?'selected':''}>${esc(x)}</option>`).join('')}</select>
+ <span class="seg"><button data-act="casa" data-t="${esc(t)}" data-v="1" aria-pressed="${f.casa===true}">Casa</button><button data-act="casa" data-t="${esc(t)}" data-v="0" aria-pressed="${f.casa===false}">Fuori</button></span></div>`}).join(''):'<p class="muted">Aggiungi prima i giocatori della tua rosa.</p>'}
+ <p class="small muted" style="margin-top:12px">Per gli stati dei giocatori consulta le probabili formazioni, poi aggiornali in Rosa: <a href="https://sport.sky.it/calcio/serie-a/probabili-formazioni" target="_blank" rel="noopener">Sky Sport</a>, <a href="https://www.fantacalcio.it/probabili-formazioni-serie-a" target="_blank" rel="noopener">Fantacalcio.it</a>.</p>
+ <h3>Voti di una giornata giocata</h3>
+ <p class="muted small">${DATI&&DATI.voti&&Object.keys(DATI.voti).length?'I voti stimati arrivano in automatico e si vedono in grigio. Se vuoi usare i fantavoti ufficiali della tua lega, scrivili qui: hanno la precedenza.':'Inserisci il fantavoto e i minuti giocati: servono per la forma recente, il rendimento casa e trasferta e la continuità. Lascia vuoto chi non ha giocato.'}</p>
+ ${S.players.length?`<div class="stepper" style="margin-bottom:8px"><button data-act="vm" aria-label="Giornata precedente">−</button><output>${vg}</output><button data-act="vp" aria-label="Giornata successiva">+</button></div>
+ <ul class="list votes">${ORD.flatMap(r=>S.players.filter(p=>p.ruolo===r)).map(p=>{const h=p.hist.find(x=>x.g===vg)||{};const au=histOf(p).find(x=>x.g===vg&&x.auto);const f=vf[p.squadra];
+ return`<li class="r-${p.ruolo}"><span class="tag">${p.ruolo}</span><span class="who" style="cursor:default"><span class="a">${esc(p.nome)}</span><span class="b">${esc(p.squadra)}${f&&f.opp?` ${f.casa?'vs':'@'} ${esc(f.opp)}`:''}</span></span>
+ <input inputmode="decimal" placeholder="${au&&au.fv!=null?String(au.fv).replace('.',','):'FV'}" aria-label="Fantavoto di ${esc(p.nome)}" data-v="fv" data-id="${p.id}" value="${h.fv!=null?String(h.fv).replace('.',','):''}">
+ <input inputmode="numeric" placeholder="${au&&au.min?au.min:'min'}" aria-label="Minuti di ${esc(p.nome)}" data-v="min" data-id="${p.id}" value="${h.min!=null&&h.min!==0?h.min:''}"></li>`}).join('')}</ul>
+ <div class="actions"><button class="btn grow" data-act="savevoti">Salva i voti della giornata ${vg}</button></div>`:''}`;
+}
+
+function vLega(){
+ const st=S.settings,w=st.pesi;
+ return`<h2>Lega</h2>
+ <label class="field"><span>Nome della tua squadra</span><input data-ch="nome" value="${esc(st.nome)}"></label>
+ <h3>Moduli consentiti</h3>
+ <div class="checks">${MODULI_ALL.map(m=>`<label><input type="checkbox" data-ch="mod" value="${m}" ${st.moduli.includes(m)?'checked':''}>${m}</label>`).join('')}</div>
+ <label class="field" style="max-width:220px"><span>Giocatori in panchina</span><input type="number" min="0" max="15" data-ch="panchina" value="${st.panchina}"></label>
+ <h3>Peso dei tre fattori</h3>
+ <p class="muted small">Contano in proporzione tra loro: non serve che la somma faccia 100.</p>
+ ${[['d','Disponibilità'],['r','Rendimento'],['m','Partita']].map(([k,l])=>`<div class="range"><label for="w_${k}">${l}</label><input id="w_${k}" type="range" min="0" max="100" step="5" value="${w[k]}" data-ch="peso" data-k="${k}"><output>${w[k]}</output></div>`).join('')}
+ <h3>Dati automatici</h3>
+ ${vDati()}
+ <h3>Voti e fantamedie da Fantacalcio.it</h3>
+ <p class="muted small">Facoltativo. Se la tua lega usa i voti di Fantacalcio.it, scarica dal sito il file Excel delle statistiche e caricalo qui: le fantamedie ufficiali sostituiscono quelle stimate. Il sito non permette di scaricarlo in automatico, quindi va fatto a mano ogni tanto.</p>
+ <div class="actions"><button class="btn sec" data-act="xlsx">Carica file Excel</button></div>
+ ${S.listoneInfo?`<p class="small muted">Listone caricato: ${S.listone.length} giocatori, ${esc(S.listoneInfo)}.</p>`:''}
+ <h3>Squadre di Serie A</h3>
+ <p class="muted small">Gol fatti e subiti decidono la difficoltà di ogni partita. Dati ${esc(S.teamsAgg)}.${DATI&&DATI.squadre&&DATI.squadre.length?'':' Aggiornali ogni tanto dalla classifica.'}</p>
+ <div class="tablewrap"><table class="teams"><thead><tr><th>Squadra</th><th>Giocate</th><th>Gol fatti</th><th>Gol subiti</th></tr></thead><tbody>
+ ${S.teams.map((t,i)=>`<tr><td>${t.pos?t.pos+'. ':''}${esc(t.n)}</td>${['g','gf','gs'].map(k=>DATI&&DATI.squadre&&DATI.squadre.length?`<td>${t[k]}</td>`:`<td><input inputmode="numeric" data-ch="team" data-i="${i}" data-k="${k}" value="${t[k]}" aria-label="${esc(t.n)} ${k}"></td>`).join('')}</tr>`).join('')}
+ </tbody></table></div>
+ <h3>Backup</h3>
+ <p class="muted small">Tutto resta salvato su questo dispositivo, anche senza rete. Salva un backup per spostare i dati su un altro telefono.</p>
+ <div class="actions"><button class="btn sec" data-act="backup">Salva backup</button><button class="btn sec" data-act="restore">Ripristina backup</button></div>
+ <h3>App sul telefono</h3>
+ <p class="muted small">Installala per aprirla dall’icona, a schermo intero e anche senza rete.</p>
+ <div class="actions"><button class="btn sec" data-act="install">Installa l’app</button></div>
+ <h3>Ricomincia</h3>
+ <div class="actions">${S.demo?'<button class="btn danger" data-act="cleardemo">Cancella la rosa di esempio</button>':''}<button class="btn danger" data-act="reset">Cancella tutti i dati</button></div>`;
+}
+
+function repoInfo(){const h=location.hostname;if(!h.endsWith('github.io'))return null;const u=h.split('.')[0];const r=location.pathname.split('/').filter(Boolean)[0]||(u+'.github.io');return{u,r,base:`https://github.com/${u}/${r}`}}
+function vDati(){
+ const ri=repoInfo();const L=(path,t)=>ri?`<a href="${ri.base}${path}" target="_blank" rel="noopener">${t}</a>`:t;
+ let stato;
+ if(DATI&&DATI.aggiornato){const nv=DATI.voti?Object.keys(DATI.voti).map(Number):[];const ni=DATI.indisponibili?Object.keys(DATI.indisponibili).length:0;
+  const linked=S.players.filter(p=>apiOf(p)).length;
+  stato=`<p class="small">Ultimo aggiornamento: ${fmtData(DATI.aggiornato)}, da ${esc((DATI.fonti||[]).join(' e '))}.</p>
+  <p class="small muted">${GI.size?`${GI.size} giocatori di Serie A${nv.length?`, voti fino alla giornata ${Math.max(...nv)}`:''}, ${ni} infortunati o squalificati per la giornata ${DATI.giornataCorrente}. ${S.players.length?`${linked} dei tuoi ${S.players.length} giocatori sono collegati alle statistiche.`:''}`:'Classifica e calendario arrivano in automatico; i giocatori arrivano con il prossimo aggiornamento.'}</p>
+  ${(DATI.problemi||[]).length?`<div class="note">L’ultimo aggiornamento ha segnalato: ${esc(DATI.problemi.join('; '))}</div>`:''}`;
+ }else stato=`<p class="small muted">${location.protocol.startsWith('http')?'Il file dei dati non c’è ancora: arriva con il primo aggiornamento su GitHub.':'Questa copia dell’app non è su GitHub, quindi usa i dati inseriti a mano.'}</p>`;
+ return`${stato}
+ <div class="actions"><button class="btn sec small" data-act="refresh">Controlla aggiornamenti</button>${ri?`<a class="btn sec small" href="${ri.base}/actions" target="_blank" rel="noopener">Apri GitHub Actions</a>`:''}</div>
+ <details class="guide"><summary>Come attivare l’aggiornamento automatico</summary>
+ <p class="small muted">Una volta sola, anche dal telefono, senza chiavi né registrazioni. GitHub scarica i dati ogni mattina alle 7 da understat.com, che li pubblica liberamente, e l’app li prende appena la apri.</p>
+ <ol class="small">
+ <li>In ${L('/settings/actions','Settings, Actions, General')}, sotto “Workflow permissions”, scegli “Read and write permissions” e salva.</li>
+ <li>In ${L('/actions','Actions')} apri “Aggiorna dati Serie A” e premi “Run workflow”. La prima volta dura circa 3 minuti, poi qui premi “Controlla aggiornamenti”.</li>
+ </ol>
+ <p class="small muted">Se Actions chiede di abilitare i workflow, premi il pulsante verde “I understand my workflows, go ahead and enable them”.</p>
+ </details>`;
+}
+let deferredInstall=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e});
+A_extra={
+ async refresh(){toast('Controllo…');const n=await loadDati(true);render();toast(n?'Dati aggiornati':DATI?'Hai già i dati più recenti':'Nessun dato disponibile')},
+ gauto(){S.settings.giornataAuto=true;applyDati();ui.modulo=null;render()},
+ async install(){if(window.matchMedia('(display-mode: standalone)').matches){toast('L’app è già installata');return}
+  if(deferredInstall){deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;return}
+  openDlg(`<div class="head"><h2>Installa l’app</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+  <p><b>iPhone e iPad (Safari):</b> tocca Condividi, poi “Aggiungi alla schermata Home”, e lascia attivo “Apri come web app”.</p>
+  <p><b>Android (Chrome):</b> menu ⋮, poi “Installa app” o “Aggiungi a schermata Home”.</p>
+  <p class="small muted">L’app installata su iPhone ha una memoria separata da Safari: se hai già inserito la rosa, salva un backup e ripristinalo dentro l’app.</p>`)}
+};
+var A_extra;
+
+/* ---------- Finestre ---------- */
+const dlg=$('#dlg');
+function openDlg(html){$('#dlgBody').innerHTML=html;if(!dlg.open)dlg.showModal()}
+function closeDlg(){if(dlg.open)dlg.close()}
+dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
+
+function dlgInfo(id){
+ const p=S.players.find(x=>x.id===id);if(!p)return;const s=score(p,S.settings.giornata);const w=S.settings.pesi;
+ const bar=(l,o,pe)=>`<div class="bar"><div class="l"><span>${l}</span><span>${Math.round(o.v)}</span></div><div class="track"><div class="fill" style="width:${Math.round(o.v)}%"></div></div><div class="d">${esc(o.d)}. Pesa ${pe}.</div></div>`;
+ openDlg(`<div class="head r-${p.ruolo}"><span class="tag">${p.ruolo}</span><h2>${esc(p.nome)}</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+ <p class="muted" style="margin-top:0">${esc(p.squadra)}, ${RUOLI[p.ruolo].toLowerCase()}${s.R.hot===1?', 🔥 in forma':s.R.hot===-1?', in calo':''}</p>
+ <div style="display:flex;align-items:center;gap:14px"><div class="bigidx">${s.out?'–':s.idx}</div><div class="muted small">${s.out?'Non disponibile: escluso dal calcolo.':'Indice di schierabilità, da 0 a 100'}</div></div>
+ ${bar('Disponibilità',s.D,w.d)}${bar('Rendimento',s.R,w.r)}${bar('Partita',s.M,w.m)}
+ ${(()=>{const a=apiOf(p);return a?`<p class="small muted">In stagione: ${a.pres} presenze, ${a.min}′, ${a.gol} gol, ${a.ass} assist, ${a.amm} ammonizioni${a.esp?`, ${a.esp} espulsioni`:''}${a.xg!=null?`, expected goals ${f2(a.xg)}, expected assist ${f2(a.xa)}`:''}.</p>`:''})()}
+ <label class="field"><span>Stato per questa giornata${s.auto&&s.st!=='tit'?' (dai dati automatici)':''}</span><select data-ch="stato" data-id="${p.id}">${Object.entries(STATI).map(([k,o])=>`<option value="${k}" ${s.st===k?'selected':''}>${o.l}</option>`).join('')}</select></label>
+ <div class="actions"><button class="btn sec small" data-act="forza" data-id="${p.id}" data-v="in" aria-pressed="${p.forza==='in'}">${p.forza==='in'?'Togli “sempre titolare”':'Sempre titolare'}</button>
+ <button class="btn sec small" data-act="forza" data-id="${p.id}" data-v="out" aria-pressed="${p.forza==='out'}">${p.forza==='out'?'Rimetti in gioco':'Escludi'}</button>
+ <button class="btn sec small" data-act="edit" data-id="${p.id}">Modifica dati</button></div>`);
+}
+function dlgEdit(id){
+ const p=id?S.players.find(x=>x.id===id):{nome:'',ruolo:'C',squadra:'',stato:'tit',fm:null};
+ const hist=id?histOf(p).sort((a,b)=>b.g-a.g):[];
+ openDlg(`<div class="head"><h2>${id?'Modifica giocatore':'Nuovo giocatore'}</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+ <label class="field"><span>Nome</span><input id="e_nome" list="dl_listone" value="${esc(p.nome)}" autocomplete="off"></label>
+ <datalist id="dl_listone">${GI.size?[...GI.values()].map(x=>`<option value="${esc(x.n)} (${esc(x.s)})">${RUOLI[x.r]}</option>`).join(''):S.listone.slice(0,800).map(x=>`<option value="${esc(x.nome)}">${esc(x.squadra)} ${x.r}</option>`).join('')}</datalist>
+ <div class="grid2"><label class="field"><span>Ruolo</span><select id="e_ruolo">${ORD.map(r=>`<option value="${r}" ${p.ruolo===r?'selected':''}>${RUOLI[r]}</option>`).join('')}</select></label>
+ <label class="field"><span>Squadra</span><select id="e_squadra"><option value="">Scegli…</option>${S.teams.map(t=>`<option ${p.squadra===t.n?'selected':''}>${esc(t.n)}</option>`).join('')}</select></label></div>
+ <div class="grid2"><label class="field"><span>Fantamedia stagione${GI.size?' (vuota: stimata in automatico)':''}</span><input id="e_fm" inputmode="decimal" value="${p.fm!=null?String(p.fm).replace('.',','):''}" placeholder="es. 6,5"></label>
+ <label class="field"><span>Stato</span><select id="e_stato">${Object.entries(STATI).map(([k,o])=>`<option value="${k}" ${(id?statoEff(p,S.settings.giornata).s:'tit')===k?'selected':''}>${o.l}</option>`).join('')}</select></label></div>
+ ${GI.size?`<label class="field"><span>Statistiche automatiche</span><select id="e_api"><option value="">Nessun collegamento</option>${[...GI.values()].filter(g=>!p.squadra||g.s===p.squadra).sort((a,b)=>a.n.localeCompare(b.n,'it')).map(g=>`<option value="${g.id}" ${p.apiId===g.id?'selected':''}>${esc(g.n)} (${esc(g.s)}, ${g.r})</option>`).join('')}</select></label>`:''}
+ ${hist.length?`<p class="small muted">Voti registrati: ${hist.map(h=>`G${h.g} ${h.fv!=null?f1(h.fv):'s.v.'}${h.min?` (${h.min}′)`:''}`).join(', ')}</p>`:''}
+ <div class="actions"><button class="btn grow" data-act="saveplayer" data-id="${id||''}">${id?'Salva modifiche':'Aggiungi alla rosa'}</button>${id?`<button class="btn danger" data-act="delplayer" data-id="${id}">Elimina</button>`:''}</div>`);
+ const inp=$('#e_nome');inp.addEventListener('change',()=>{
+  const m=inp.value.match(/^(.*) \(([^)]+)\)$/);
+  if(m&&GI.size){const g=[...GI.values()].find(x=>x.n===m[1].trim()&&x.s===m[2]);if(g){inp.value=g.n;$('#e_ruolo').value=g.r;if(S.teams.some(t=>t.n===g.s))$('#e_squadra').value=g.s;fillApiSel(g.s,g.id);return}}
+  const L=S.listone.find(x=>norm(x.nome)===norm(inp.value));if(L){$('#e_ruolo').value=L.r;if(S.teams.some(t=>t.n===L.squadra))$('#e_squadra').value=L.squadra;if(L.fm!=null&&!$('#e_fm').value)$('#e_fm').value=String(L.fm).replace('.',',')}});
+ $('#e_squadra').addEventListener('change',()=>fillApiSel($('#e_squadra').value,null));
+ if(!id)setTimeout(()=>inp.focus(),50);
+}
+function fillApiSel(sq,sel){const e=$('#e_api');if(!e)return;e.innerHTML='<option value="">Nessun collegamento</option>'+[...GI.values()].filter(g=>!sq||g.s===sq).sort((a,b)=>a.n.localeCompare(b.n,'it')).map(g=>`<option value="${g.id}" ${sel===g.id?'selected':''}>${esc(g.n)} (${esc(g.s)}, ${g.r})</option>`).join('')}
+function dlgBulk(){
+ openDlg(`<div class="head"><h2>Incolla la rosa</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+ <p class="muted small">Un giocatore per riga: nome, ruolo (P, D, C, A) e squadra, separati da virgola, punto e virgola o tabulazione. Con i dati automatici (o il file Excel di Fantacalcio.it) spesso basta il nome.</p>
+ <label class="field"><span>Giocatori</span><textarea id="b_txt" placeholder="Svilar, P, Roma&#10;Bastoni; D; Inter&#10;Lautaro"></textarea></label>
+ <div class="actions"><button class="btn grow" data-act="bulkgo">Aggiungi alla rosa</button></div>`);
+}
+function dlgRestore(){
+ openDlg(`<div class="head"><h2>Ripristina backup</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+ <p class="muted small">Scegli il file del backup, oppure incolla qui il suo contenuto. I dati attuali verranno sostituiti.</p>
+ <div class="actions"><button class="btn sec" data-act="pickbackup">Scegli file</button></div>
+ <label class="field"><span>Contenuto del backup</span><textarea id="r_txt"></textarea></label>
+ <div class="actions"><button class="btn grow" data-act="restorego">Ripristina</button></div>`);
+}
+
+/* ---------- Azioni ---------- */
+function findListone(nome){const n=norm(nome);return S.listone.find(x=>norm(x.nome)===n)}
+function applyListoneTo(p){
+ let L=S.listone.filter(x=>norm(x.nome)===norm(p.nome));
+ if(L.length>1)L=L.filter(x=>norm(x.squadra)===norm(p.squadra));
+ if(L.length===1){const x=L[0];if(x.fm!=null)p.fm=x.fm;if(x.pv!=null)p.pv=x.pv;if(x.mv!=null)p.mv=x.mv;return true}return false;
+}
+async function copyText(t){
+ try{await navigator.clipboard.writeText(t);return true}catch(e){}
+ try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok}catch(e){return false}
+}
+const A={
+ close:closeDlg,
+ demo(){S.players=demoPlayers();S.demo=true;save();render();toast('Rosa di esempio caricata')},
+ cleardemo(){S.players=[];S.demo=false;save();render();toast('Rosa di esempio cancellata')},
+ add(){dlgEdit(null)},
+ edit(el){dlgEdit(el.dataset.id)},
+ bulk(){dlgBulk()},
+ info(el){dlgInfo(el.dataset.id)},
+ mod(el){ui.modulo=el.dataset.m;render()},
+ async copy(){const t=formazioneTesto();if(await copyText(t))toast('Formazione copiata negli appunti');else openDlg(`<div class="head"><h2>Copia la formazione</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div><p class="muted small">Il browser non permette la copia automatica: seleziona il testo e copialo.</p><label class="field"><span>Formazione</span><textarea readonly>${esc(t)}</textarea></label>`)},
+ async share(){try{await navigator.share({text:formazioneTesto()})}catch(e){}},
+ forza(el){const p=S.players.find(x=>x.id===el.dataset.id);if(!p)return;p.forza=p.forza===el.dataset.v?null:el.dataset.v;save();render();dlgInfo(p.id)},
+ saveplayer(el){
+  const nome=$('#e_nome').value.trim();if(!nome){toast('Scrivi il nome del giocatore');return}
+  const squadra=$('#e_squadra').value;if(!squadra){toast('Scegli la squadra');return}
+  const id=el.dataset.id;const p=id?S.players.find(x=>x.id===id):{id:uid(),hist:[],forza:null,pv:null,mv:null};
+  const nst=$('#e_stato').value;if(!id||nst!==statoEff(p,S.settings.giornata).s){p.stato=nst;p.statoG=S.settings.giornata}
+  Object.assign(p,{nome,ruolo:$('#e_ruolo').value,squadra,fm:num($('#e_fm').value)});
+  const ea=$('#e_api');if(ea){p.apiId=ea.value?+ea.value:null;if(!ea.value&&!id){const g=trovaApi(nome,squadra,p.ruolo);if(g)p.apiId=g.id}}
+  if(!id){if(S.demo){S.players=[];S.demo=false}S.players.push(p)}save();closeDlg();render();toast(id?'Modifiche salvate':`${nome} aggiunto alla rosa`)},
+ delplayer(el){const p=S.players.find(x=>x.id===el.dataset.id);if(!p||!confirm(`Eliminare ${p.nome} dalla rosa?`))return;S.players=S.players.filter(x=>x!==p);save();closeDlg();render();toast(`${p.nome} eliminato`)},
+ bulkgo(){
+  const lines=$('#b_txt').value.split(/\n+/).map(l=>l.trim()).filter(Boolean);let ok=0;const bad=[];
+  if(lines.length&&S.demo){S.players=[];S.demo=false}
+  for(const l of lines){const parts=l.split(/[;,\t]/).map(x=>x.trim()).filter(Boolean);let nome=parts[0],ruolo=null,squadra=null;
+   for(const x of parts.slice(1)){if(/^[pdca]$/i.test(x))ruolo=x.toUpperCase();else{const t=S.teams.find(t=>norm(t.n)===norm(x)||norm(t.n).startsWith(norm(x)));if(t)squadra=t.n}}
+   if((!ruolo||!squadra)&&GI.size){const g=trovaApi(nome,squadra,ruolo);if(g){ruolo=ruolo||g.r;squadra=squadra||g.s}}
+   if(!ruolo||!squadra){const L=findListone(nome);if(L){ruolo=ruolo||L.r;squadra=squadra||(S.teams.find(t=>norm(t.n)===norm(L.squadra))||{}).n}}
+   if(!nome||!ruolo||!squadra){bad.push(nome||l);continue}
+   const p={id:uid(),nome,ruolo,squadra,stato:'tit',fm:null,pv:null,mv:null,forza:null,hist:[]};applyListoneTo(p);if(GI.size){const g=trovaApi(nome,squadra,ruolo);p.apiId=g?g.id:null}S.players.push(p);ok++}
+  save();render();
+  if(bad.length){$('#b_txt').value=bad.join('\n');toast(`${ok} aggiunti. Non riconosciuti: ${bad.length}, controlla ruolo e squadra`)}else{closeDlg();toast(`${ok} giocatori aggiunti`)}},
+ gm(){if(S.settings.giornata>1){S.settings.giornata--;S.settings.giornataAuto=false;ensureCal();ui.modulo=null;save();render()}},
+ gp(){if(S.settings.giornata<38){S.settings.giornata++;S.settings.giornataAuto=false;ensureCal();ui.modulo=null;save();render()}},
+ vm(){ui.votiG=Math.max(1,(ui.votiG??Math.max(1,S.settings.giornata-1))-1);render()},
+ vp(){ui.votiG=Math.min(38,(ui.votiG??Math.max(1,S.settings.giornata-1))+1);render()},
+ casa(el){const g=S.settings.giornata;S.fixtures[g]=S.fixtures[g]||{};const t=el.dataset.t;const base=(fxBase(g)||{})[t]||{opp:''};const f=S.fixtures[g][t]=S.fixtures[g][t]||{opp:base.opp,casa:base.casa};f.casa=el.dataset.v==='1';
+  if(f.opp){S.fixtures[g][f.opp]={opp:t,casa:!f.casa}}save();render()},
+ savevoti(){
+  const g=ui.votiG??Math.max(1,S.settings.giornata-1);const vf=Object.assign({},fxBase(g)||{},S.fixtures[g]||{});let n=0;
+  S.players.forEach(p=>{const fvEl=document.querySelector(`input[data-v="fv"][data-id="${p.id}"]`);const mEl=document.querySelector(`input[data-v="min"][data-id="${p.id}"]`);if(!fvEl)return;
+   const fv=num(fvEl.value);let min=num(mEl.value);p.hist=p.hist.filter(h=>h.g!==g);
+   const au=histOf(p).find(x=>x.g===g&&x.auto);if(fv==null&&min==null&&au)return;
+   if(fv!=null&&min==null)min=au&&au.min?au.min:90;if(fv==null&&min==null)min=0;
+   const f=vf[p.squadra];p.hist.push({g,fv,min,casa:f?f.casa:null});if(fv!=null)n++});
+  save();render();toast(`Voti della giornata ${g} salvati (${n} con voto)`)},
+ xlsx(){$('#fileX').click()},
+ async backup(){
+  const data=JSON.stringify(S);const name=`fantaformazione-backup-${new Date().toISOString().slice(0,10)}.json`;
+  try{const d=window.claude&&await claude.use('downloads');if(d){await d.save({filename:name,data});toast('Backup salvato');return}}catch(e){if(e&&e.code==='declined')return}
+  if(await copyText(data))toast('Backup copiato negli appunti: incollalo in una nota per conservarlo');else toast('Salvataggio non disponibile qui')},
+ restore(){dlgRestore()},
+ pickbackup(){$('#fileB').click()},
+ restorego(){try{const o=JSON.parse($('#r_txt').value);if(!o||!Array.isArray(o.players)||!o.settings)throw 0;S=Object.assign(defState(),o);applyDati();save();closeDlg();render();toast('Backup ripristinato')}catch(e){toast('Il testo non è un backup valido di Fantaformazione')}},
+ reset(){if(!confirm('Cancellare rosa, voti e impostazioni da questo dispositivo?'))return;S=defState();ui.modulo=null;applyDati();save();render();toast('Dati cancellati')}
+};
+function ensureCal(){}
+
+Object.assign(A,A_extra);
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;const f=A[el.dataset.act];if(f){e.preventDefault();f(el)}});
+document.addEventListener('change',e=>{const el=e.target.closest('[data-ch]');if(!el)return;const k=el.dataset.ch;
+ if(k==='stato'){const p=S.players.find(x=>x.id===el.dataset.id);if(p){p.stato=el.value;p.statoG=S.settings.giornata;save();render();if(dlg.open)dlgInfo(p.id)}}
+ else if(k==='opp'){const g=S.settings.giornata;S.fixtures[g]=S.fixtures[g]||{};const t=el.dataset.t;const prev=(S.fixtures[g][t]||(fxBase(g)||{})[t]||{}).opp;
+  if(prev&&S.fixtures[g][prev]&&S.fixtures[g][prev].opp===t)delete S.fixtures[g][prev];
+  const casa=(S.fixtures[g][t]||(fxBase(g)||{})[t]||{}).casa??true;
+  if(el.value){S.fixtures[g][t]={opp:el.value,casa};S.fixtures[g][el.value]={opp:t,casa:!casa}}else delete S.fixtures[g][t];save();render()}
+ else if(k==='nome'){S.settings.nome=el.value.trim()||'La mia squadra';save();render()}
+ else if(k==='mod'){const m=el.value;const L=S.settings.moduli;if(el.checked){if(!L.includes(m))L.push(m)}else{if(L.length<=1){el.checked=true;toast('Serve almeno un modulo');return}S.settings.moduli=L.filter(x=>x!==m)}ui.modulo=null;save()}
+ else if(k==='panchina'){S.settings.panchina=clamp(Math.round(num(el.value)||0),0,15);save();render()}
+ else if(k==='team'){const t=S.teams[+el.dataset.i];t[el.dataset.k]=Math.max(0,Math.round(num(el.value)||0));S.teamsAgg='modificati da te';save()}
+});
+document.addEventListener('input',e=>{const el=e.target;if(el.dataset&&el.dataset.ch==='peso'){S.settings.pesi[el.dataset.k]=+el.value;el.nextElementSibling.textContent=el.value;save()}});
+
+$('#fileX').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;
+ if(!window.XLSX){toast('Il lettore Excel non si è caricato: controlla la connessione e riprova');return}
+ try{const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const hi=rows.findIndex(r=>r.some(c=>norm(c)==='nome')&&r.some(c=>['r','ruolo'].includes(norm(c))));
+  if(hi<0){toast('Non trovo le colonne Nome e R: usa il file Statistiche o Quotazioni di Fantacalcio.it');return}
+  const H=rows[hi].map(c=>norm(c));const col=(...k)=>{for(const x of k){const i=H.indexOf(x);if(i>=0)return i}return -1};
+  const iR=col('r','ruolo'),iN=col('nome'),iS=col('squadra'),iPv=col('pv'),iMv=col('mv'),iFm=col('fm');
+  const list=[];for(const r of rows.slice(hi+1)){const nome=String(r[iN]??'').trim();const ru=String(r[iR]??'').trim().toUpperCase().charAt(0);
+   if(!nome||!ru||!'PDCA'.includes(ru))continue;list.push({nome,r:ru,squadra:String(iS>=0?r[iS]:'').trim(),pv:iPv>=0?num(r[iPv]):null,mv:iMv>=0?num(r[iMv]):null,fm:iFm>=0?num(r[iFm]):null})}
+  if(!list.length){toast('Il file non contiene giocatori riconoscibili');return}
+  S.listone=list;S.listoneInfo=`${file.name}, caricato il ${new Date().toLocaleDateString('it-IT')}`;
+  let upd=0;S.players.forEach(p=>{if(applyListoneTo(p))upd++});save();render();toast(`${list.length} giocatori letti, ${upd} della tua rosa aggiornati`)}
+ catch(err){toast('Non riesco a leggere il file: è un Excel di Fantacalcio.it?')}});
+$('#fileB').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;const t=await file.text();const ta=$('#r_txt');if(ta)ta.value=t});
+
+/* ---------- Navigazione ---------- */
+function fromHash(){const h=location.hash.replace('#','');TAB=['formazione','rosa','giornata','lega'].includes(h)?h:'formazione';render();window.scrollTo(0,0)}
+window.addEventListener('hashchange',fromHash);
+document.querySelectorAll('nav.tabs a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();TAB=a.dataset.tab;try{history.replaceState(null,'','#'+TAB)}catch(_){}render();window.scrollTo(0,0)}));
+
+(async()=>{
+ await DB.open();const saved=await DB.get('state');
+ if(saved&&saved.settings){S=Object.assign(defState(),saved);S.settings=Object.assign(defState().settings,saved.settings)}
+ await loadDati(false);fromHash();
+ if(await loadDati(true))render();
+ if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js')}catch(e){}}
+})();
+</script>
+</body>
+</html>

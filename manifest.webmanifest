@@ -1,0 +1,29 @@
+{
+ "name": "Fantaformazione",
+ "short_name": "Fantaformazione",
+ "description": "La formazione migliore per ogni giornata di fantacalcio",
+ "lang": "it",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#e6ece7",
+ "theme_color": "#2e7b47",
+ "icons": [
+  {
+   "src": "icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
