@@ -24,6 +24,15 @@ aggiornati da soli ogni mattina, senza chiavi né registrazioni, disponibili anc
   - Su iPhone l'app installata ha una memoria separata da Safari: se hai già inserito la rosa
     nel browser, salva un backup (Lega → Backup) e ripristinalo dentro l'app.
 
+4. CARICA IL LISTONE UFFICIALE (consigliato, 2 minuti)
+  Dal sito di Fantacalcio.it scarica il file Excel delle QUOTAZIONI della Serie A e caricalo
+  in Lega → "Carica file Excel". Dà all'app i ruoli ufficiali e le quotazioni di mercato.
+  Senza, i ruoli sono stimati da Understat: molti esterni risultano attaccanti invece che
+  centrocampisti, e i prezzi dell'asta per ruolo vengono molto sbilanciati.
+  Puoi caricare anche il file delle STATISTICHE: si somma alle quotazioni e aggiunge le
+  fantamedie ufficiali. Fantacalcio.it non permette di scaricarli in automatico, quindi va
+  fatto a mano: le quotazioni a inizio stagione e prima delle aste di riparazione.
+
 DA DOVE ARRIVANO I DATI
   Da understat.com, che pubblica liberamente i dati della Serie A. Lo script li legge una volta
   al giorno, con calma (una richiesta ogni 1,5 secondi), e ne ricava:
@@ -33,7 +42,69 @@ DA DOVE ARRIVANO I DATI
   - minuti e fantavoto stimato di ogni giocatore in ogni partita;
   - squalifiche probabili: espulsi nell'ultima partita e chi ha raggiunto la 5ª, 10ª, 14ª,
     17ª ammonizione (poi ogni ammonizione);
-  - titolari fissi rimasti fuori nell'ultima partita, segnalati come "in dubbio".
+  - titolari fissi rimasti fuori: "in dubbio" dopo una partita saltata, "infortunato"
+    dopo tre, con il numero di partite saltate; l'avviso sparisce quando torna a giocare.
+
+COME SCEGLIE LA FORMAZIONE
+  Per ogni giocatore calcola i fantapunti attesi nella giornata:
+    probabilità di giocare × fantavoto se gioca + il resto × 5,5
+  (5,5 è il fantavoto tipico del panchinaro che entra al suo posto; se in Lega togli
+  le sostituzioni, chi non gioca vale zero e l'app preferisce chi gioca di sicuro).
+
+  Probabilità di giocare
+  - Stato: titolare, ballottaggio, in dubbio, panchina, infortunato, squalificato.
+  - Ultime 5 partite della sua squadra, le più recenti contano di più: quante da titolare,
+    quante entrando dalla panchina, quante saltate (contano come 0 minuti).
+  - Turno ravvicinato: se ha giocato da titolare 3 giorni prima, rischia il riposo.
+
+  Fantavoto se gioca
+  - Fantamedia, forma delle ultime 5, rendimento in casa o in trasferta; con pochi voti
+    la stima si avvicina alla media del ruolo.
+  - Pericolosità: gol e assist veri e attesi (expected goals e assist) ogni 90 minuti,
+    in stagione e nelle ultime partite. I rigori sono compresi: chi li batte vale di più.
+  - Partita: gol che dovrebbe segnare e subire la sua squadra, calcolati da gol ed
+    expected goals di entrambe le squadre, separati tra casa e trasferta e corretti
+    con la forma delle ultime 6 partite.
+  - Probabilità di vittoria: chi vince prende voti più alti.
+  - Portieri e difensori: gol subiti attesi, probabilità di porta inviolata, bonus
+    imbattuto se la tua lega lo prevede.
+
+  Poi prova tutti i moduli consentiti e sceglie quello con più punti attesi.
+  Per ogni giocatore l'app dice "Schieralo", "In bilico", "In panchina" o "Tribuna",
+  con i motivi a favore e contro: si vedono toccando il giocatore.
+  "Infortunato" e "Squalificato" impostati da te restano finché il giocatore non torna a
+  giocare, oppure fino alla giornata che indichi nella sua scheda.
+
+IL MERCATO, COME IN MONEYBALL
+  Il valore di un giocatore non è quanti punti fa, ma quanti ne fa IN PIÙ di una riserva che
+  trovi gratis nel suo ruolo. Da qui:
+  - Valori: prezzo giusto in crediti di ogni giocatore di Serie A, per le prossime 6 giornate
+    o fino a fine stagione, con il calendario rimasto. Metà della fortuna sotto porta (gol e
+    assist sopra o sotto quelli attesi) viene tolta, perché di solito non si ripete.
+    Un titolare infortunato perde valore per le prossime partite, non per tutta la stagione.
+  - Sottovalutati e sopravvalutati: confronto tra il valore reale e quello che vede il mercato
+    (le quotazioni del listone, o il tabellino se non l'hai caricato).
+  - Scambi: incolli le rose degli avversari (bastano i cognomi) e l'app cerca gli scambi
+    che rafforzano la tua formazione e che, a guardare tabellino e quotazioni, sembrano equi
+    anche all'altro. Puoi anche valutare uno scambio tuo, giocatore per giocatore.
+  - Svincolati: i migliori liberi e chi tagliare per prenderli.
+  - Asta: prezzi giusti per un'asta da zero e, per la riparazione, quanto offrire al massimo
+    con i crediti che ti restano.
+  L'app è impostata per la Classic (P, D, C, A; rosa 3-8-8-6, asta da 500 crediti
+  modificabili in Mercato → Asta).
+
+IL COLLAUDO SU DATI REALI
+  Il sistema è stato provato su una stagione vera completa (Premier League 2023/24, l'unico
+  campionato con dati Understat partita per partita disponibili per il collaudo; il formato
+  è identico a quello della Serie A). Con le previsioni fatte alla 9ª giornata:
+  - i punti fatti davvero dalla 10ª alla 38ª sono previsti meglio che con il tabellino
+    (correlazione 0,56 contro 0,49, dove 1 è la previsione perfetta), in ogni ruolo;
+  - i 15 attaccanti scelti dall'app hanno fatto più punti reali dei 15 scelti dal tabellino;
+    per centrocampisti e difensori i due metodi sono quasi pari;
+  - i giocatori segnalati come sopravvalutati hanno fatto in media 96 punti in meno di
+    quanto il tabellino lasciava pensare: sapere chi vendere è il vantaggio più forte;
+  - il segnale dei sottovalutati è debole (+4,5 punti in media).
+  I "punti reali" del collaudo sono fantavoti stimati, non quelli ufficiali.
 
 I LIMITI, DETTI CHIARAMENTE
   - Infortuni: nessuna fonte libera li pubblica in un formato leggibile. L'app segnala come
