@@ -80,6 +80,7 @@ nav.tabs a[aria-current="page"] svg{stroke:var(--ink)}
 .r-P{--role:var(--P)}.r-D{--role:var(--D)}.r-C{--role:var(--C)}.r-A{--role:var(--A)}
 .chip.lock .disc::after{content:"";position:absolute;left:-6px;bottom:-4px;width:13px;height:13px;border-radius:3px;background:var(--ink);border:2px solid #fff}
 
+.seg{max-width:100%;overflow-x:auto}
 .mods{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
 .mods button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 12px;text-align:left;cursor:pointer}
 .mods button .m{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.25rem;line-height:1.1}
@@ -177,7 +178,7 @@ dialog::backdrop{background:rgba(5,12,8,.55)}
 </div></nav>
 <dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
-<input type="file" id="fileX" accept=".xlsx,.xls,.csv" hidden>
+<input type="file" id="fileX" accept=".xlsx,.xls,.csv" multiple hidden>
 <input type="file" id="fileB" accept=".json,application/json" hidden>
 
 <script>
@@ -219,6 +220,7 @@ function defState(){return{v:1,
  settings:{nome:'La mia squadra',giornata:8,giornataAuto:true,moduli:[...MODULI_ALL],panchina:7,imbattuto:false,sostituzioni:true},
  teams:TEAMS0.map(([n,gf,gs])=>({n,g:7,gf,gs})),teamsAgg:'19 ottobre 2026, dopo 7 giornate',
  players:[],fixtures:{},listone:[],listoneInfo:null,demo:false,
+ votiUff:{},votiUffInfo:{},
  mb:{squadre:10,crediti:500,orizzonte:'stagione',ruolo:'tutti',sez:'valori',residui:null,daComprare:3},lega:[]}}
 let S=defState();
 const ui={modulo:null};
@@ -268,6 +270,7 @@ function statoEff(p,g){
 function histOf(p){
  const m=new Map();
  if(p.apiId!=null&&DATI&&DATI.voti){for(const [g,vs] of Object.entries(DATI.voti)){const v=vs[p.apiId];if(v)m.set(+g,{g:+g,fv:v[0],min:v[1],casa:v[2]==null?null:!!v[2],start:v.length>5?!!v[5]:null,xg:v.length>6?v[6]:null,xa:v.length>7?v[7]:null,auto:true})}}
+ if(p.apiId!=null&&S.votiUff){for(const g in S.votiUff){const v=S.votiUff[g][p.apiId];if(v){const e=m.get(+g)||{g:+g,min:null,casa:null};m.set(+g,Object.assign({},e,{fv:v[0],voto:v[1],uff:true,min:e.min!=null?e.min:(v[0]!=null?90:0)}))}}}
  (p.hist||[]).forEach(h=>m.set(h.g,h));return[...m.values()];
 }
 
@@ -364,7 +367,7 @@ function fvAtteso(p,fx,part){
  const rec=(part||[]).filter(x=>x.min>0&&x.xg!=null);const minRec=rec.reduce((t,x)=>t+x.min,0);
  if(minRec>=180){const r90={g:rec.reduce((t,x)=>t+x.xg,0)/(minRec/90),a:rec.reduce((t,x)=>t+(x.xa||0),0)/(minRec/90)};
   info.rec90=r90.g+r90.a;info.sea90=q.g+q.a;q={g:.65*q.g+.35*r90.g,a:.65*q.a+.35*r90.a}}
- info.rig=api&&api.pxg>=.7;
+ const Lp=api?listoneDi(api):null;info.rig=(api&&api.pxg>=.7)||!!(Lp&&(Lp.rc||0)>=1);
  const L=lambdas(p.squadra,fx);let adj=0,dM=fx&&fx.opp?`Contro ${fx.opp}: mancano i dati delle squadre`:'Avversario non impostato (sezione Giornata)';
  if(L){
   const pos=(part||[]).filter(x=>x.min>0);const pm=pos.length?clamp(avg(pos.map(x=>x.min))/90,.4,1):.85;
@@ -564,9 +567,13 @@ function vLega(){
  <p class="muted small">Con le sostituzioni conviene rischiare un po’ di più su chi rende tanto quando gioca; senza, l’app preferisce chi gioca di sicuro.</p>
  <h3>Dati automatici</h3>
  ${vDati()}
- <h3>Voti e fantamedie da Fantacalcio.it</h3>
- <p class="muted small">Consigliato. Dal sito di Fantacalcio.it scarica il file Excel delle <b>quotazioni</b>: dà i ruoli ufficiali e i prezzi di mercato, fondamentali per il Mercato. Il file delle <b>statistiche</b> aggiunge le fantamedie ufficiali. Puoi caricarli entrambi, si sommano. Il sito non permette di scaricarli in automatico, quindi va fatto a mano: le quotazioni a inizio stagione e prima delle aste di riparazione.</p>
- <div class="actions"><button class="btn sec" data-act="xlsx">Carica file Excel</button></div>
+ <h3>File di Fantacalcio.it</h3>
+ <p class="muted small">Dal sito di Fantacalcio.it puoi caricare tre tipi di file Excel, anche più di uno alla volta: l’app riconosce da sola cosa sono.</p>
+ <ul class="why small"><li class="p"><b>Quotazioni</b>: ruoli ufficiali, che diventano il ruolo di base dei tuoi giocatori, e prezzi di mercato. Una volta a inizio stagione e prima delle aste di riparazione.</li>
+ <li class="p"><b>Statistiche</b>: fantamedie ufficiali, rigori calciati, gol, assist, cartellini.</li>
+ <li class="p"><b>Voti</b> di giornata: i fantavoti ufficiali prendono il posto di quelli stimati. Puoi selezionare tutti i file delle giornate insieme.</li></ul>
+ <p class="small muted">${[S.info_quotazioni?`Quotazioni: ${esc(S.info_quotazioni)}.`:'Quotazioni non caricate.',S.info_statistiche?`Statistiche: ${esc(S.info_statistiche)}.`:'',Object.keys(S.votiUff||{}).length?`Voti ufficiali delle giornate ${Object.keys(S.votiUff).map(Number).sort((a,b)=>a-b).join(', ')}.`:''].join(' ')}</p>
+ <div class="actions"><button class="btn sec" data-act="xlsx">Carica file Excel</button>${Object.keys(S.votiUff||{}).length?'<button class="btn sec" data-act="votireset">Togli i voti ufficiali</button>':''}</div>
  ${S.listoneInfo?`<p class="small muted">Listone caricato: ${S.listone.length} giocatori, ${esc(S.listoneInfo)}.</p>`:''}
  <h3>Squadre di Serie A</h3>
  <p class="muted small">Gol fatti e subiti decidono la difficoltà di ogni partita. Dati ${esc(S.teamsAgg)}.${DATI&&DATI.squadre&&DATI.squadre.length?'':' Aggiornali ogni tanto dalla classifica.'}</p>
@@ -744,7 +751,7 @@ function vMercato(){
  if(M.vuoto)return`<h2>Mercato</h2><p class="muted">Servono i dati automatici dei giocatori: attiva l’aggiornamento in Lega, Dati automatici. Al primo aggiornamento qui trovi valori, scambi, svincolati e asta.</p>`;
  const sez=S.mb.sez;const seg=(k,l)=>`<button data-act="mbsez" data-v="${k}" aria-pressed="${sez===k}">${l}</button>`;
  const head=`<h2>Mercato</h2>
- <div class="seg" style="margin-bottom:10px">${seg('valori','Valori')}${seg('scambi','Scambi')}${seg('liberi','Svincolati')}${seg('asta','Asta')}</div>
+ <div class="seg" style="margin-bottom:10px">${seg('valori','Valori')}${seg('scambi','Scambi')}${seg('liberi','Svincolati')}${seg('asta','Asta')}${seg('portieri','Portieri')}</div>
  <p class="small muted" style="margin:0 0 6px">Orizzonte: <span class="seg"><button data-act="mbor" data-v="6" aria-pressed="${M.sei}">Prossime 6</button><button data-act="mbor" data-v="stagione" aria-pressed="${!M.sei}">Fino a fine stagione</button></span></p>`;
  const ruoli=`<div class="seg" style="margin:4px 0 8px">${['tutti',...ORD].map(r=>`<button data-act="mbruolo" data-v="${r}" aria-pressed="${S.mb.ruolo===r}">${r==='tutti'?'Tutti':r}</button>`).join('')}</div>`;
  const filt=L=>S.mb.ruolo==='tutti'?L:L.filter(v=>v.r===S.mb.ruolo);
@@ -756,6 +763,7 @@ function vMercato(){
   <h3>Sopravvalutati: da vendere</h3><p class="small muted">Il mercato li paga più di quanto renderanno, spesso per gol arrivati sopra le occasioni create.</p><ul class="list">${sopr.map(v=>rigaV(v)).join('')||'<li class="muted">Nessuno in questo ruolo.</li>'}</ul>
   <h3>Classifica per valore reale</h3><ul class="list">${L.slice(0,40).map(v=>rigaV(v)).join('')}</ul>`;
  }
+ if(sez==='portieri')return head+vPortieri(M);
  if(sez==='scambi'){
   const lega=`<h3>Le altre squadre della lega</h3><p class="small muted">Incolla la rosa di ogni avversario: servono per trovare gli scambi e sapere chi è svincolato.</p>
   <ul class="list">${S.lega.map(t=>`<li><button class="who" data-act="mbteam" data-id="${t.id}"><span class="a">${esc(t.nome)}</span><span class="b">${t.ids.length} giocatori riconosciuti${t.nonTrovati&&t.nonTrovati.length?`, ${t.nonTrovati.length} da controllare`:''}</span></button></li>`).join('')}</ul>
@@ -790,6 +798,27 @@ function vMercato(){
  ${ruoli}${piano}
  <h3>Prezzi giusti</h3><p class="small muted">Per un’asta da zero: i crediti di tutta la lega divisi in base ai punti che ogni giocatore porta sopra una riserva gratuita. Offri fino a questa cifra; sopra, stai pagando più di quanto renderà.</p>
  <ul class="list">${filt(M.V).slice().sort((a,b)=>b.prezzo-a.prezzo).slice(0,50).map(v=>rigaV(v)).join('')}</ul>`;
+}
+function grigliaPortieri(){
+ const TF=fattoriSquadre(S.settings.giornata);const sq=Object.keys(TF);
+ const val={};sq.forEach(t=>{val[t]=new Map(TF[t].map(f=>[f.g,{s:-f.la+.5*f.cs+(S.settings.imbattuto?f.cs:0),la:f.la,fuori:!f.casa}]))});
+ const coppie=[];
+ for(let i=0;i<sq.length;i++)for(let j=i+1;j<sq.length;j++){const a=sq[i],b=sq[j];let fuori=0,sc=0,la=0,n=0,sa=0,sb=0;
+  for(const [g,x] of val[a]){const y=val[b].get(g);if(!y)continue;n++;if(x.fuori&&y.fuori)fuori++;const best=x.s>=y.s?x:y;sc+=best.s;la+=best.la;sa+=x.s;sb+=y.s}
+  if(n)coppie.push({a,b,fuori,n,la,guadagno:sc-Math.max(sa,sb)})}
+ return{coppie,val};
+}
+function portiereDi(team){const P=[...GI.values()].filter(g=>g.s===team&&ruoloUff(g)==='P').sort((x,y)=>y.min-x.min);return P[0]?P[0].n:'portiere'}
+function vPortieri(M){
+ const G=grigliaPortieri();if(!G.coppie.length)return'<p class="muted">Servono il calendario e i dati delle squadre.</p>';
+ const miei=[...new Set(S.players.filter(p=>p.ruolo==='P').map(p=>p.squadra))];
+ const riga=c=>`<li><div style="flex:1"><b>${esc(c.a)}</b> e <b>${esc(c.b)}</b><div class="small muted">${esc(portiereDi(c.a))} e ${esc(portiereDi(c.b))}: entrambi fuori casa in ${c.fuori} giornate su ${c.n}; scegliendo ogni volta il migliore subiresti ${f1(c.la)} gol attesi, ${f1(c.la/c.n)} a giornata</div></div><span class="idx ok">+${f1(c.guadagno)}</span></li>`;
+ const mie=miei.map(t=>{const L=G.coppie.filter(c=>c.a===t||c.b===t).sort((x,y)=>y.guadagno-x.guadagno).slice(0,5);return`<h3>Il compagno migliore per ${esc(portiereDi(t))} (${esc(t)})</h3><ul class="list">${L.map(riga).join('')}</ul>`}).join('');
+ return`<p class="small muted">Come la griglia portieri di Fantacalcio.it, ma calcolata sul calendario che resta e sulla forza degli attacchi avversari, non solo su casa e trasferta. Il numero a destra sono i fantapunti in più, fino a fine stagione, rispetto a schierare sempre il migliore dei due.</p>
+ ${miei.length?(()=>{const c=miei.length>=2?G.coppie.find(c=>(c.a===miei[0]&&c.b===miei[1])||(c.a===miei[1]&&c.b===miei[0])):null;return c?`<div class="note" style="border-left-color:var(--C)">I tuoi portieri (${esc(miei[0])} e ${esc(miei[1])}): ${c.fuori} giornate entrambi fuori, +${f1(c.guadagno)} punti alternandoli.</div>`:''})():''}
+ ${mie}
+ <h3>Le coppie migliori della Serie A</h3><ul class="list">${G.coppie.slice().sort((x,y)=>y.guadagno-x.guadagno).slice(0,12).map(riga).join('')}</ul>
+ <h3>Le coppie da evitare</h3><ul class="list">${G.coppie.slice().sort((x,y)=>x.guadagno-y.guadagno).slice(0,5).map(riga).join('')}</ul>`;
 }
 function dlgMbInfo(id){
  const M=mbCalcola();const v=M.VM.get(+id);if(!v)return;const gi=v.gi;
@@ -834,6 +863,7 @@ function dlgMbTrade(){
 }
 A_extra=Object.assign(A_extra||{},{
  mbsez(el){S.mb.sez=el.dataset.v;save();render()},
+ votireset(){if(!confirm('Togliere tutti i voti ufficiali caricati?'))return;S.votiUff={};S.votiUffInfo={};MB.key=null;save();render()},
  mbor(el){S.mb.orizzonte=el.dataset.v;save();render()},
  mbruolo(el){S.mb.ruolo=el.dataset.v;save();render()},
  mbinfo(el){dlgMbInfo(el.dataset.id)},
@@ -884,7 +914,7 @@ function dlgEdit(id){
  openDlg(`<div class="head"><h2>${id?'Modifica giocatore':'Nuovo giocatore'}</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
  <label class="field"><span>Nome</span><input id="e_nome" list="dl_listone" value="${esc(p.nome)}" autocomplete="off"></label>
  <datalist id="dl_listone">${GI.size?[...GI.values()].map(x=>`<option value="${esc(x.n)} (${esc(x.s)})">${RUOLI[x.r]}</option>`).join(''):S.listone.slice(0,800).map(x=>`<option value="${esc(x.nome)}">${esc(x.squadra)} ${x.r}</option>`).join('')}</datalist>
- <div class="grid2"><label class="field"><span>Ruolo</span><select id="e_ruolo">${ORD.map(r=>`<option value="${r}" ${p.ruolo===r?'selected':''}>${RUOLI[r]}</option>`).join('')}</select></label>
+ <div class="grid2"><label class="field"><span>Ruolo${S.listone.length?' (di base quello del listone)':''}</span><select id="e_ruolo">${ORD.map(r=>`<option value="${r}" ${p.ruolo===r?'selected':''}>${RUOLI[r]}</option>`).join('')}</select></label>
  <label class="field"><span>Squadra</span><select id="e_squadra"><option value="">Scegli…</option>${S.teams.map(t=>`<option ${p.squadra===t.n?'selected':''}>${esc(t.n)}</option>`).join('')}</select></label></div>
  <div class="grid2"><label class="field"><span>Fantamedia stagione${GI.size?' (vuota: stimata in automatico)':''}</span><input id="e_fm" inputmode="decimal" value="${p.fm!=null?String(p.fm).replace('.',','):''}" placeholder="es. 6,5"></label>
  <label class="field"><span>Stato</span><select id="e_stato">${Object.entries(STATI).map(([k,o])=>`<option value="${k}" ${(id?statoEff(p,S.settings.giornata).s:'tit')===k?'selected':''}>${o.l}</option>`).join('')}</select></label></div>
@@ -915,6 +945,12 @@ function dlgRestore(){
 
 /* ---------- Azioni ---------- */
 function findListone(nome){const n=norm(nome);return S.listone.find(x=>norm(x.nome)===n)}
+function ruoloDaListone(p){
+ const g=apiOf(p);let L=g?listoneDi(g):null;
+ if(!L){const c=S.listone.filter(x=>norm(x.nome)===norm(p.nome));L=c.length===1?c[0]:c.find(x=>norm(x.squadra)===norm(p.squadra))||null}
+ return L&&L.r?L.r:null;
+}
+function allineaRuoli(){let n=0;S.players.forEach(p=>{if(p.ruoloManuale)return;const r=ruoloDaListone(p);if(r&&r!==p.ruolo){p.ruolo=r;n++}});return n}
 function applyListoneTo(p){
  let L=S.listone.filter(x=>norm(x.nome)===norm(p.nome));
  if(L.length>1)L=L.filter(x=>norm(x.squadra)===norm(p.squadra));
@@ -942,6 +978,7 @@ const A={
   const id=el.dataset.id;const p=id?S.players.find(x=>x.id===id):{id:uid(),hist:[],forza:null,pv:null,mv:null};
   const nst=$('#e_stato').value;if(!id||nst!==statoEff(p,S.settings.giornata).s){p.stato=nst;p.statoG=S.settings.giornata;if(nst!=='inf'&&nst!=='squ')p.statoFino=null}
   Object.assign(p,{nome,ruolo:$('#e_ruolo').value,squadra,fm:num($('#e_fm').value)});
+  {const ru=ruoloDaListone(p);p.ruoloManuale=!!(ru&&ru!==p.ruolo)}
   const ea=$('#e_api');if(ea){p.apiId=ea.value?+ea.value:null;if(!ea.value&&!id){const g=trovaApi(nome,squadra,p.ruolo);if(g)p.apiId=g.id}}
   if(!id){if(S.demo){S.players=[];S.demo=false}S.players.push(p)}save();closeDlg();render();toast(id?'Modifiche salvate':`${nome} aggiunto alla rosa`)},
  delplayer(el){const p=S.players.find(x=>x.id===el.dataset.id);if(!p||!confirm(`Eliminare ${p.nome} dalla rosa?`))return;S.players=S.players.filter(x=>x!==p);save();closeDlg();render();toast(`${p.nome} eliminato`)},
@@ -953,7 +990,7 @@ const A={
    if((!ruolo||!squadra)&&GI.size){const g=trovaApi(nome,squadra,ruolo);if(g){ruolo=ruolo||ruoloUff(g);squadra=squadra||g.s}}
    if(!ruolo||!squadra){const L=findListone(nome);if(L){ruolo=ruolo||L.r;squadra=squadra||(S.teams.find(t=>norm(t.n)===norm(L.squadra))||{}).n}}
    if(!nome||!ruolo||!squadra){bad.push(nome||l);continue}
-   const p={id:uid(),nome,ruolo,squadra,stato:'tit',fm:null,pv:null,mv:null,forza:null,hist:[]};applyListoneTo(p);if(GI.size){const g=trovaApi(nome,squadra,ruolo);p.apiId=g?g.id:null}S.players.push(p);ok++}
+   const p={id:uid(),nome,ruolo,squadra,stato:'tit',fm:null,pv:null,mv:null,forza:null,hist:[]};applyListoneTo(p);if(GI.size){const g=trovaApi(nome,squadra,ruolo);p.apiId=g?g.id:null}{const ru=ruoloDaListone(p);if(ru)p.ruolo=ru}S.players.push(p);ok++}
   save();render();
   if(bad.length){$('#b_txt').value=bad.join('\n');toast(`${ok} aggiunti. Non riconosciuti: ${bad.length}, controlla ruolo e squadra`)}else{closeDlg();toast(`${ok} giocatori aggiunti`)}},
  gm(){if(S.settings.giornata>1){S.settings.giornata--;S.settings.giornataAuto=false;ensureCal();ui.modulo=null;save();render()}},
@@ -999,22 +1036,77 @@ document.addEventListener('change',e=>{const el=e.target.closest('[data-ch]');if
  else if(k==='team'){const t=S.teams[+el.dataset.i];t[el.dataset.k]=Math.max(0,Math.round(num(el.value)||0));S.teamsAgg='modificati da te';save()}
 });
 
-$('#fileX').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;
+function leggiVoti(rows,nomeFile){
+ // file "Voti_Fantacalcio_Stagione_..._Giornata_N": per ogni squadra il nome, poi l'intestazione "Cod."
+ let g=null;const m=String(nomeFile).match(/giornata[^0-9]{0,3}(\d{1,2})/i);if(m)g=+m[1];
+ if(!g){for(const r of rows.slice(0,4)){const t=r.join(' ');const k=t.match(/giornata[^0-9]{0,3}(\d{1,2})/i)||t.match(/(\d{1,2})\s*[ªa°]\s*giornata/i);if(k){g=+k[1];break}}}
+ if(!g){const x=prompt(`Di quale giornata sono i voti di ${nomeFile}?`);g=num(x);if(!g)return null}
+ let H=null,team=null;const out={},nonTrovati=[];let n=0;
+ const ix=k=>H.indexOf(k);
+ for(let i=0;i<rows.length;i++){const r=rows[i];const c0=String(r[0]??'').trim();
+  if(norm(c0)==='cod'){H=r.map(c=>norm(c));team=String((rows[i-1]||[])[0]??'').trim();const t=S.teams.find(t=>norm(t.n)===norm(team)||norm(team).startsWith(norm(t.n)));team=t?t.n:team;continue}
+  if(!H||c0===''||isNaN(+c0))continue;
+  const ruolo=String(r[ix('ruolo')]??'').trim().toUpperCase();if(ruolo==='ALL'||!'PDCA'.includes(ruolo.charAt(0)))continue;
+  const nome=String(r[ix('nome')]??'').trim();const vs=String(r[ix('voto')]??'').replace(',','.').replace('*','').trim();
+  const voto=/^\d+(\.\d+)?$/.test(vs)?+vs:null;const val=k=>{const j=ix(k);return j>=0?(num(r[j])||0):0};
+  const fv=voto==null?null:Math.round((voto+3*val('gf')+3*val('rf')-val('gs')+3*val('rp')-3*val('rs')-2*val('au')-.5*val('amm')-val('esp')+val('ass'))*10)/10;
+  const gi=trovaApi(nome,team,ruolo.charAt(0));n++;
+  if(gi)out[gi.id]=[fv,voto];else nonTrovati.push(`${nome} (${team})`);
+ }
+ return{g,out,n,nonTrovati};
+}
+function leggiListone(rows,nomeFile){
+ const hi=rows.findIndex(r=>r.some(c=>norm(c)==='nome')&&r.some(c=>['r','ruolo'].includes(norm(c))));if(hi<0)return null;
+ const H=rows[hi].map(c=>norm(c));const col=(...k)=>{for(const x of k){const i=H.indexOf(x);if(i>=0)return i}return -1};
+ const iR=col('r','ruolo'),iN=col('nome'),iS=col('squadra'),iQt=col('qt a','qta','quotazione','qt'),iFvm=col('fvm');
+ const extra={pv:col('pv'),mv:col('mv'),fm:col('fm'),gf:col('gf'),gs:col('gs'),rp:col('rp'),rc:col('rc'),rseg:col('r'),rsb:col('r 1'),ass:col('ass'),amm:col('amm'),esp:col('esp'),au:col('au')};
+ // nel file statistiche le colonne dei rigori sono "R+" e "R-": norm le rende "r" e "r"; le cerchiamo dopo "rc"
+ const iRc=extra.rc;const iRp=iRc>=0?iRc+1:-1,iRm=iRc>=0?iRc+2:-1;
+ const tipo=iQt>=0||iFvm>=0?'quotazioni':extra.fm>=0?'statistiche':'listone';
+ const list=[];
+ for(const r of rows.slice(hi+1)){const nome=String(r[iN]??'').trim();const ru=String(r[iR]??'').trim().toUpperCase().charAt(0);
+  if(!nome||!ru||!'PDCA'.includes(ru))continue;
+  const x={nome,r:ru,squadra:String(iS>=0?r[iS]:'').trim(),qt:iQt>=0?num(r[iQt]):null,fvm:iFvm>=0?num(r[iFvm]):null};
+  if(tipo==='statistiche'){['pv','mv','fm','gf','gs','rp','ass','amm','esp','au'].forEach(k=>{x[k]=extra[k]>=0?num(r[extra[k]]):null});
+   x.rc=iRc>=0?num(r[iRc]):null;x.rseg=iRp>=0?num(r[iRp]):null;x.rsb=iRm>=0?num(r[iRm]):null}
+  list.push(x)}
+ return list.length?{tipo,list}:null;
+}
+function uniscilistone(list,tipo){
+ const key=x=>norm(x.nome)+'|'+norm(x.squadra);const old=new Map(S.listone.map(x=>[key(x),x]));
+ if(tipo==='quotazioni'||!S.listone.length){
+  // le quotazioni comandano su ruoli e giocatori presenti; le statistiche già caricate si conservano
+  list.forEach(x=>{const o=old.get(key(x));if(o)for(const k in o)if(x[k]==null&&o[k]!=null)x[k]=o[k]});S.listone=list;
+ }else{
+  const nuovi=[];list.forEach(x=>{const o=old.get(key(x));if(o){for(const k in x)if(x[k]!=null&&!(k==='r'&&o.r))o[k]=x[k]}else nuovi.push(x)});S.listone=S.listone.concat(nuovi);
+ }
+ LMAP=null;MB.key=null;
+}
+$('#fileX').addEventListener('change',async e=>{const files=[...e.target.files];e.target.value='';if(!files.length)return;
  if(!window.XLSX){toast('Il lettore Excel non si è caricato: controlla la connessione e riprova');return}
- try{const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-  const hi=rows.findIndex(r=>r.some(c=>norm(c)==='nome')&&r.some(c=>['r','ruolo'].includes(norm(c))));
-  if(hi<0){toast('Non trovo le colonne Nome e R: usa il file Statistiche o Quotazioni di Fantacalcio.it');return}
-  const H=rows[hi].map(c=>norm(c));const col=(...k)=>{for(const x of k){const i=H.indexOf(x);if(i>=0)return i}return -1};
-  const iR=col('r','ruolo'),iN=col('nome'),iS=col('squadra'),iPv=col('pv'),iMv=col('mv'),iFm=col('fm'),iQt=col('qt a','qta','quotazione','qt'),iFvm=col('fvm');
-  const list=[];for(const r of rows.slice(hi+1)){const nome=String(r[iN]??'').trim();const ru=String(r[iR]??'').trim().toUpperCase().charAt(0);
-   if(!nome||!ru||!'PDCA'.includes(ru))continue;list.push({nome,r:ru,squadra:String(iS>=0?r[iS]:'').trim(),pv:iPv>=0?num(r[iPv]):null,mv:iMv>=0?num(r[iMv]):null,fm:iFm>=0?num(r[iFm]):null,qt:iQt>=0?num(r[iQt]):null,fvm:iFvm>=0?num(r[iFvm]):null})}
-  if(!list.length){toast('Il file non contiene giocatori riconoscibili');return}
-  const old=new Map(S.listone.map(x=>[norm(x.nome)+'|'+norm(x.squadra),x]));
-  list.forEach(x=>{const o=old.get(norm(x.nome)+'|'+norm(x.squadra));if(o)['pv','mv','fm','qt','fvm'].forEach(k=>{if(x[k]==null&&o[k]!=null)x[k]=o[k]})});
-  S.listone=list;LMAP=null;S.listoneInfo=`${file.name}, caricato il ${new Date().toLocaleDateString('it-IT')}`;
-  let upd=0,ruoli=0;S.players.forEach(p=>{if(applyListoneTo(p))upd++;const g=apiOf(p);if(g){const r=ruoloUff(g);if(r&&r!==p.ruolo){p.ruolo=r;ruoli++}}});MB.key=null;save();render();toast(`${list.length} giocatori letti, ${upd} della tua rosa aggiornati${ruoli?`, ${ruoli} ruoli corretti`:''}`)}
- catch(err){toast('Non riesco a leggere il file: è un Excel di Fantacalcio.it?')}});
+ const esito=[];const nonTrovati=[];
+ for(const file of files){
+  try{const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+   const sh=wb.SheetNames.find(n=>/fantacalcio/i.test(n))||wb.SheetNames[0];
+   const rows=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:''});
+   if(rows.some(r=>norm(r[0])==='cod')){
+    const v=leggiVoti(rows,file.name);if(!v){esito.push(`${file.name}: giornata non indicata, saltato`);continue}
+    S.votiUff[v.g]=v.out;S.votiUffInfo[v.g]={file:file.name,n:v.n,non:v.nonTrovati.length};nonTrovati.push(...v.nonTrovati.slice(0,5));
+    esito.push(`voti della giornata ${v.g}: ${Object.keys(v.out).length} giocatori`);continue}
+   const L=leggiListone(rows,file.name);
+   if(!L){esito.push(`${file.name}: formato non riconosciuto`);continue}
+   uniscilistone(L.list,L.tipo);S.listoneInfo=`${L.tipo==='quotazioni'?'quotazioni':'statistiche'} da ${file.name}, ${new Date().toLocaleDateString('it-IT')}`;
+   S['info_'+L.tipo]=`${file.name}, ${new Date().toLocaleDateString('it-IT')}`;
+   esito.push(`${L.tipo}: ${L.list.length} giocatori`);
+  }catch(err){esito.push(`${file.name}: non leggibile`)}
+ }
+ let upd=0;S.players.forEach(p=>{if(applyListoneTo(p))upd++});const ruoli=allineaRuoli();
+ MB.key=null;save();render();
+ openDlg(`<div class="head"><h2>File caricati</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+ <ul class="why">${esito.map(t=>`<li class="p">${esc(t)}</li>`).join('')}</ul>
+ <p class="small">${ruoli?`${ruoli} ruoli della tua rosa allineati al listone. `:''}${upd?`${upd} giocatori della tua rosa aggiornati.`:''}</p>
+ ${nonTrovati.length?`<p class="small muted">Alcuni voti non sono stati collegati, di solito giocatori senza minuti nei dati automatici: ${esc(nonTrovati.slice(0,8).join(', '))}${nonTrovati.length>8?'…':''}.</p>`:''}`);
+});
 $('#fileB').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;const t=await file.text();const ta=$('#r_txt');if(ta)ta.value=t});
 
 /* ---------- Navigazione ---------- */
@@ -1024,7 +1116,7 @@ document.querySelectorAll('nav.tabs a').forEach(a=>a.addEventListener('click',e=
 
 (async()=>{
  await DB.open();const saved=await DB.get('state');
- if(saved&&saved.settings){S=Object.assign(defState(),saved);S.settings=Object.assign(defState().settings,saved.settings);S.mb=Object.assign(defState().mb,saved.mb||{});S.lega=saved.lega||[]}
+ if(saved&&saved.settings){S=Object.assign(defState(),saved);S.settings=Object.assign(defState().settings,saved.settings);S.mb=Object.assign(defState().mb,saved.mb||{});S.lega=saved.lega||[];S.votiUff=saved.votiUff||{};S.votiUffInfo=saved.votiUffInfo||{}}
  await loadDati(false);fromHash();
  if(await loadDati(true))render();
  if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js')}catch(e){}}

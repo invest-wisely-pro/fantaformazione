@@ -24,14 +24,20 @@ aggiornati da soli ogni mattina, senza chiavi né registrazioni, disponibili anc
   - Su iPhone l'app installata ha una memoria separata da Safari: se hai già inserito la rosa
     nel browser, salva un backup (Lega → Backup) e ripristinalo dentro l'app.
 
-4. CARICA IL LISTONE UFFICIALE (consigliato, 2 minuti)
-  Dal sito di Fantacalcio.it scarica il file Excel delle QUOTAZIONI della Serie A e caricalo
-  in Lega → "Carica file Excel". Dà all'app i ruoli ufficiali e le quotazioni di mercato.
-  Senza, i ruoli sono stimati da Understat: molti esterni risultano attaccanti invece che
-  centrocampisti, e i prezzi dell'asta per ruolo vengono molto sbilanciati.
-  Puoi caricare anche il file delle STATISTICHE: si somma alle quotazioni e aggiunge le
-  fantamedie ufficiali. Fantacalcio.it non permette di scaricarli in automatico, quindi va
-  fatto a mano: le quotazioni a inizio stagione e prima delle aste di riparazione.
+4. CARICA I FILE DI FANTACALCIO.IT (consigliato)
+  Dal sito di Fantacalcio.it scarica i file Excel e caricali in Lega → "Carica file Excel".
+  Puoi selezionarne più di uno insieme: l'app riconosce da sola di che file si tratta.
+  - QUOTAZIONI: ruoli ufficiali e quotazioni di mercato. Il ruolo del listone diventa il ruolo
+    di base dei tuoi giocatori (se lo cambi a mano nella scheda, l'app rispetta la tua scelta).
+    Senza, i ruoli sono stimati da Understat e i prezzi dell'asta per ruolo si sbilanciano.
+    Da caricare a inizio stagione e prima delle aste di riparazione.
+  - STATISTICHE: fantamedie ufficiali e rigori calciati (per riconoscere i rigoristi).
+  - VOTI di giornata (Voti_Fantacalcio_..._Giornata_N): i fantavoti ufficiali, calcolati con
+    i bonus classici, prendono il posto di quelli stimati in tutti i calcoli. Puoi caricare
+    tutte le giornate in un colpo. I voti che scrivi tu a mano restano i più importanti.
+  Fantacalcio.it non permette di scaricarli in automatico, quindi va fatto a mano.
+  La GRIGLIA PORTIERI non serve caricarla: l'app la calcola da sola in Mercato → Portieri,
+  sul calendario che resta e sulla forza degli attacchi avversari.
 
 DA DOVE ARRIVANO I DATI
   Da understat.com, che pubblica liberamente i dati della Serie A. Lo script li legge una volta
@@ -90,6 +96,9 @@ IL MERCATO, COME IN MONEYBALL
   - Svincolati: i migliori liberi e chi tagliare per prenderli.
   - Asta: prezzi giusti per un'asta da zero e, per la riparazione, quanto offrire al massimo
     con i crediti che ti restano.
+  - Portieri: la griglia portieri calcolata sul calendario rimasto: per ogni coppia, le
+    giornate entrambi fuori casa, i gol subiti attesi scegliendo ogni volta il migliore e i
+    punti in più rispetto a un portiere solo; con il compagno migliore per i tuoi portieri.
   L'app è impostata per la Classic (P, D, C, A; rosa 3-8-8-6, asta da 500 crediti
   modificabili in Mercato → Asta).
 

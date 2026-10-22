@@ -1,5 +1,5 @@
 // Fantaformazione: app disponibile anche senza rete.
-const VERSION = 'fanta-2026-10-4';
+const VERSION = 'fanta-2026-10-5';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
